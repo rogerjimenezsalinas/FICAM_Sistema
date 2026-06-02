@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FICAM — Sistema Académico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0f1b2d;--navy2:#162236;--navy3:#1c2d45;--navy4:#243552;
+  --blue:#2563eb;--blue2:#3b82f6;--blue3:#60a5fa;
+  --teal:#0d9488;--teal2:#14b8a6;
+  --amber:#d97706;--amber2:#f59e0b;
+  --red:#dc2626;--red2:#ef4444;
+  --green:#16a34a;--green2:#22c55e;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --border:#1e3a5f;--border2:#2a4a70;
+  --card:#162236;--card2:#1c2d45;
+  --radius:10px;--radius2:6px;
+  --shadow:0 4px 24px rgba(0,0,0,.4);
+  font-family:'DM Sans',sans-serif;
+}
+body{background:var(--navy);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+/* ── TOPBAR ── */
+.topbar{background:var(--navy2);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+.logo{font-weight:600;font-size:15px;letter-spacing:.05em;color:#fff;display:flex;align-items:center;gap:8px}
+.logo span{background:var(--blue);color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500}
+.nav-tabs{display:flex;gap:2px;margin-left:auto}
+.nav-tab{padding:6px 14px;border-radius:var(--radius2);font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;border:none;background:transparent;transition:all .15s}
+.nav-tab:hover{background:var(--navy3);color:var(--text)}
+.nav-tab.active{background:var(--blue);color:#fff}
+/* ── LAYOUT ── */
+.layout{display:flex;flex:1;gap:0}
+.sidebar{width:220px;background:var(--navy2);border-right:1px solid var(--border);padding:16px 12px;display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+.sidebar-label{font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--text3);text-transform:uppercase;padding:8px 8px 4px}
+.sidebar-item{padding:8px 12px;border-radius:var(--radius2);font-size:13px;color:var(--text2);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:8px}
+.sidebar-item:hover{background:var(--navy3);color:var(--text)}
+.sidebar-item.active{background:var(--navy4);color:var(--blue3);font-weight:500}
+.sidebar-item .icon{font-size:15px;width:18px;text-align:center}
+.main{flex:1;padding:24px;overflow-y:auto;max-height:calc(100vh - 56px)}
+/* ── DASHBOARD ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:6px}
+.stat-card .num{font-size:32px;font-weight:600;line-height:1;font-family:'DM Mono',monospace}
+.stat-card .lbl{font-size:12px;color:var(--text2)}
+.stat-card.blue .num{color:var(--blue3)}
+.stat-card.teal .num{color:var(--teal2)}
+.stat-card.amber .num{color:var(--amber2)}
+.stat-card.green .num{color:var(--green2)}
+/* ── TABLES ── */
+.section-title{font-size:16px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px}
+table{width:100%;border-collapse:collapse}
+th{background:var(--card2);padding:10px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border)}
+td{padding:10px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--card2)}
+/* ── FORMS ── */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px}
+.panel-title{font-size:14px;font-weight:600;margin-bottom:16px;color:var(--text)}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+label{font-size:12px;color:var(--text2);font-weight:500}
+input,select,textarea{background:var(--navy3);border:1px solid var(--border2);border-radius:var(--radius2);padding:8px 10px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--blue2)}
+select option{background:var(--navy3)}
+/* ── BUTTONS ── */
+.btn{padding:8px 16px;border-radius:var(--radius2);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:#1d4ed8}
+.btn-success{background:var(--green);color:#fff}
+.btn-success:hover{background:#15803d}
+.btn-danger{background:var(--red);color:#fff;padding:5px 10px;font-size:12px}
+.btn-danger:hover{background:#b91c1c}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text2)}
+.btn-outline:hover{border-color:var(--blue2);color:var(--blue3)}
+/* ── BADGES ── */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.badge-blue{background:rgba(37,99,235,.2);color:var(--blue3)}
+.badge-green{background:rgba(22,163,74,.2);color:var(--green2)}
+.badge-amber{background:rgba(217,119,6,.2);color:var(--amber2)}
+.badge-red{background:rgba(220,38,38,.2);color:var(--red2)}
+.badge-teal{background:rgba(13,148,136,.2);color:var(--teal2)}
+/* ── ASISTENCIA ── */
+.asist-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.asist-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--navy3);border-radius:var(--radius2);border:1px solid var(--border)}
+.asist-name{flex:1;font-size:13px}
+.toggle{display:flex;gap:4px}
+.toggle button{padding:4px 10px;border:1px solid var(--border2);border-radius:4px;font-size:12px;cursor:pointer;background:transparent;color:var(--text2);transition:all .15s}
+.toggle button.presente{background:rgba(22,163,74,.2);color:var(--green2);border-color:var(--green)}
+.toggle button.ausente{background:rgba(220,38,38,.2);color:var(--red2);border-color:var(--red)}
+/* ── PROGRESS BAR ── */
+.progress-bar{height:6px;background:var(--navy3);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .3s}
+.progress-fill.good{background:var(--green2)}
+.progress-fill.warn{background:var(--amber2)}
+.progress-fill.bad{background:var(--red2)}
+/* ── UTILS ── */
+.flex{display:flex;align-items:center;gap:8px}
+.mt8{margin-top:8px}
+.hidden{display:none!important}
+.loading{color:var(--text3);font-size:13px;padding:20px;text-align:center}
+.empty{color:var(--text3);font-size:13px;padding:30px;text-align:center}
+.section{display:none}
+.section.active{display:block}
+</style>
+</head>
+<body>
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">🎓 <span>FICAM</span> Sistema Académico</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showSection('dashboard')">Dashboard</button>
+    <button class="nav-tab" onclick="showSection('estudiantes')">Estudiantes</button>
+    <button class="nav-tab" onclick="showSection('materias')">Materias</button>
+    <button class="nav-tab" onclick="showSection('asistencia')">Asistencia</button>
+    <button class="nav-tab" onclick="showSection('trabajos')">Trabajos</button>
+    <button class="nav-tab" onclick="showSection('estadisticas')">Estadísticas</button>
+  </div>
+</div>
+
+<div class="layout">
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-label">Módulos</div>
+  <div class="sidebar-item active" onclick="showSection('dashboard')"><span class="icon">📊</span>Dashboard</div>
+  <div class="sidebar-item" onclick="showSection('carreras')"><span class="icon">🏫</span>Carreras</div>
+  <div class="sidebar-item" onclick="showSection('materias')"><span class="icon">📚</span>Materias</div>
+  <div class="sidebar-item" onclick="showSection('estudiantes')"><span class="icon">👥</span>Estudiantes</div>
+  <div class="sidebar-item" onclick="showSection('inscripciones')"><span class="icon">📋</span>Inscripciones</div>
+  <div class="sidebar-label">Gestión</div>
+  <div class="sidebar-item" onclick="showSection('asistencia')"><span class="icon">✅</span>Asistencia</div>
+  <div class="sidebar-item" onclick="showSection('trabajos')"><span class="icon">📝</span>Trabajos</div>
+  <div class="sidebar-item" onclick="showSection('calificaciones')"><span class="icon">🏆</span>Calificaciones</div>
+  <div class="sidebar-label">Reportes</div>
+  <div class="sidebar-item" onclick="showSection('estadisticas')"><span class="icon">📈</span>Estadísticas</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- DASHBOARD -->
+<div class="section active" id="sec-dashboard">
+  <div class="section-title">Dashboard General</div>
+  <div class="stats-grid" id="dash-stats">
+    <div class="loading">Cargando...</div>
+  </div>
+  <div class="section-title" style="margin-top:8px">Acceso Rápido</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+    <div class="panel" style="cursor:pointer" onclick="showSection('asistencia')">
+      <div class="panel-title">✅ Registrar Asistencia</div>
+      <p style="font-size:12px;color:var(--text2)">Marcar asistencia de estudiantes por materia y fecha</p>
+    </div>
+    <div class="panel" style="cursor:pointer" onclick="showSection('calificaciones')">
+      <div class="panel-title">🏆 Calificar Trabajos</div>
+      <p style="font-size:12px;color:var(--text2)">Registrar notas de tareas, proyectos y exámenes</p>
+    </div>
+    <div class="panel" style="cursor:pointer" onclick="showSection('estadisticas')">
+      <div class="panel-title">📈 Ver Estadísticas</div>
+      <p style="font-size:12px;color:var(--text2)">Análisis de rendimiento por materia y estudiante</p>
+    </div>
+  </div>
+</div>
+
+<!-- CARRERAS -->
+<div class="section" id="sec-carreras">
+  <div class="section-title">Carreras <button class="btn btn-primary" onclick="toggleForm('form-carrera')">+ Nueva Carrera</button></div>
+  <div class="panel hidden" id="form-carrera">
+    <div class="panel-title">Nueva Carrera</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Nombre</label><input id="c-nombre" placeholder="Ingeniería Mecánica"></div>
+      <div class="form-group"><label>Código</label><input id="c-codigo" placeholder="IM"></div>
+    </div>
+    <div class="mt8"><button class="btn btn-success" onclick="crearCarrera()">Guardar</button></div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Código</th><th>Nombre</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody id="tabla-carreras"><tr><td colspan="4" class="loading">Cargando...</td></tr></tbody>
+  </table></div>
+</div>
+
+<!-- MATERIAS -->
+<div class="section" id="sec-materias">
+  <div class="section-title">Materias <button class="btn btn-primary" onclick="toggleForm('form-materia')">+ Nueva Materia</button></div>
+  <div class="panel hidden" id="form-materia">
+    <div class="panel-title">Nueva Materia</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Nombre</label><input id="m-nombre" placeholder="Álgebra Lineal"></div>
+      <div class="form-group"><label>Código</label><input id="m-codigo" placeholder="AL101"></div>
+      <div class="form-group"><label>Créditos</label><input id="m-creditos" type="number" value="4"></div>
+      <div class="form-group"><label>Semestre</label><input id="m-semestre" type="number" value="1" min="1" max="10"></div>
+      <div class="form-group"><label>Carrera</label><select id="m-carrera"></select></div>
+    </div>
+    <div class="mt8"><button class="btn btn-success" onclick="crearMateria()">Guardar</button></div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Código</th><th>Materia</th><th>Carrera</th><th>Sem.</th><th>Créditos</th><th>Acciones</th></tr></thead>
+    <tbody id="tabla-materias"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+  </table></div>
+</div>
+
+<!-- ESTUDIANTES -->
+<div class="section" id="sec-estudiantes">
+  <div class="section-title">Estudiantes <button class="btn btn-primary" onclick="toggleForm('form-est')">+ Nuevo Estudiante</button></div>
+  <div class="panel hidden" id="form-est">
+    <div class="panel-title">Nuevo Estudiante</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Nombre</label><input id="e-nombre" placeholder="Ana"></div>
+      <div class="form-group"><label>Apellido</label><input id="e-apellido" placeholder="Mamani"></div>
+      <div class="form-group"><label>Código</label><input id="e-codigo" placeholder="20240001"></div>
+      <div class="form-group"><label>Email</label><input id="e-email" placeholder="ana@ficam.edu.bo"></div>
+      <div class="form-group"><label>Semestre Actual</label><input id="e-semestre" type="number" value="1" min="1" max="10"></div>
+      <div class="form-group"><label>Carrera</label><select id="e-carrera"></select></div>
+    </div>
+    <div class="mt8"><button class="btn btn-success" onclick="crearEstudiante()">Guardar</button></div>
+  </div>
+  <div class="flex" style="margin-bottom:12px">
+    <select id="filtro-carrera-est" onchange="cargarEstudiantes()"><option value="">Todas las carreras</option></select>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Código</th><th>Nombre</th><th>Carrera</th><th>Semestre</th><th>Acciones</th></tr></thead>
+    <tbody id="tabla-estudiantes"><tr><td colspan="5" class="loading">Cargando...</td></tr></tbody>
+  </table></div>
+</div>
+
+<!-- INSCRIPCIONES -->
+<div class="section" id="sec-inscripciones">
+  <div class="section-title">Inscripciones <button class="btn btn-primary" onclick="toggleForm('form-insc')">+ Inscribir</button></div>
+  <div class="panel hidden" id="form-insc">
+    <div class="panel-title">Nueva Inscripción</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Estudiante</label><select id="i-est"></select></div>
+      <div class="form-group"><label>Materia</label><select id="i-mat"></select></div>
+      <div class="form-group"><label>Semestre</label><input id="i-semestre" placeholder="2024-I"></div>
+    </div>
+    <div class="mt8"><button class="btn btn-success" onclick="crearInscripcion()">Guardar</button></div>
+  </div>
+  <div class="flex" style="margin-bottom:12px">
+    <select id="filtro-materia-insc" onchange="cargarInscripciones()"><option value="">Todas las materias</option></select>
+    <input id="filtro-semestre-insc" placeholder="Semestre (ej: 2024-I)" onchange="cargarInscripciones()">
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Estudiante</th><th>Materia</th><th>Semestre</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody id="tabla-inscripciones"><tr><td colspan="5" class="loading">Cargando...</td></tr></tbody>
+  </table></div>
+</div>
+
+<!-- ASISTENCIA -->
+<div class="section" id="sec-asistencia">
+  <div class="section-title">Control de Asistencia</div>
+  <div class="panel">
+    <div class="panel-title">Registrar Asistencia por Clase</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Materia</label><select id="a-materia" onchange="cargarListaAsistencia()"></select></div>
+      <div class="form-group"><label>Fecha</label><input type="date" id="a-fecha" onchange="cargarListaAsistencia()"></div>
+    </div>
+  </div>
+  <div id="lista-asistencia" class="hidden">
+    <div class="panel-title" style="margin-bottom:12px">Lista de Estudiantes</div>
+    <div class="asist-grid" id="grid-asistencia"></div>
+    <button class="btn btn-success mt8" onclick="guardarAsistencia()">💾 Guardar Asistencia</button>
+  </div>
+  <div style="margin-top:24px">
+    <div class="section-title">Resumen de Asistencia por Materia</div>
+    <div class="flex" style="margin-bottom:12px">
+      <select id="a-mat-resumen" onchange="cargarResumenAsistencia()"><option value="">Seleccione materia</option></select>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Código</th><th>Estudiante</th><th>Clases</th><th>Presentes</th><th>% Asistencia</th><th>Estado</th></tr></thead>
+      <tbody id="tabla-asistencia"><tr><td colspan="6" class="empty">Seleccione una materia</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- TRABAJOS -->
+<div class="section" id="sec-trabajos">
+  <div class="section-title">Trabajos y Actividades <button class="btn btn-primary" onclick="toggleForm('form-trab')">+ Nuevo Trabajo</button></div>
+  <div class="panel hidden" id="form-trab">
+    <div class="panel-title">Registrar Trabajo</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Título</label><input id="t-titulo" placeholder="Tarea 1"></div>
+      <div class="form-group"><label>Materia</label><select id="t-materia"></select></div>
+      <div class="form-group"><label>Fecha Entrega</label><input type="date" id="t-fecha"></div>
+      <div class="form-group"><label>Puntaje Máximo</label><input type="number" id="t-puntaje" value="100"></div>
+      <div class="form-group"><label>Tipo</label>
+        <select id="t-tipo">
+          <option value="tarea">Tarea</option>
+          <option value="proyecto">Proyecto</option>
+          <option value="examen">Examen</option>
+          <option value="practica">Práctica</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Descripción</label><input id="t-desc" placeholder="Descripción (opcional)"></div>
+    </div>
+    <div class="mt8"><button class="btn btn-success" onclick="crearTrabajo()">Guardar</button></div>
+  </div>
+  <div class="flex" style="margin-bottom:12px">
+    <select id="filtro-mat-trab" onchange="cargarTrabajos()"><option value="">Todas las materias</option></select>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Título</th><th>Materia</th><th>Tipo</th><th>Entrega</th><th>Puntaje</th><th>Acciones</th></tr></thead>
+    <tbody id="tabla-trabajos"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+  </table></div>
+</div>
+
+<!-- CALIFICACIONES -->
+<div class="section" id="sec-calificaciones">
+  <div class="section-title">Calificaciones</div>
+  <div class="panel">
+    <div class="panel-title">Seleccionar Trabajo a Calificar</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Materia</label><select id="cal-materia" onchange="cargarTrabajosCalif()"></select></div>
+      <div class="form-group"><label>Trabajo</label><select id="cal-trabajo" onchange="cargarListaCalif()"></select></div>
+    </div>
+  </div>
+  <div id="lista-calificaciones" class="hidden">
+    <div class="panel-title" style="margin-bottom:12px">Registrar Notas</div>
+    <div id="grid-calificaciones"></div>
+    <button class="btn btn-success mt8" onclick="guardarCalificaciones()">💾 Guardar Calificaciones</button>
+  </div>
+</div>
+
+<!-- ESTADÍSTICAS -->
+<div class="section" id="sec-estadisticas">
+  <div class="section-title">Estadísticas y Reportes</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div>
+      <div class="panel">
+        <div class="panel-title">📚 Por Materia</div>
+        <div class="form-group"><label>Seleccione Materia</label>
+          <select id="stat-materia" onchange="cargarStatMateria()"><option value="">Seleccione...</option></select>
+        </div>
+      </div>
+      <div id="stat-mat-result"></div>
+    </div>
+    <div>
+      <div class="panel">
+        <div class="panel-title">👤 Por Estudiante</div>
+        <div class="form-group"><label>Seleccione Estudiante</label>
+          <select id="stat-est" onchange="cargarStatEst()"><option value="">Seleccione...</option></select>
+        </div>
+      </div>
+      <div id="stat-est-result"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+const API = '';  // mismo origen
+
+// ── HELPERS ──────────────────────────────────────────────
+async function get(path) {
+  const r = await fetch(API + '/api' + path);
+  return r.ok ? r.json() : [];
+}
+async function post(path, data) {
+  const r = await fetch(API + '/api' + path, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if (!r.ok) { const e = await r.json(); alert(e.detail || 'Error'); return null; }
+  return r.json();
+}
+async function del(path) {
+  const r = await fetch(API + '/api' + path, {method:'DELETE'});
+  return r.ok;
+}
+
+function badge(tipo) {
+  const map = {tarea:'blue',proyecto:'teal',examen:'amber',practica:'green'};
+  return `<span class="badge badge-${map[tipo]||'blue'}">${tipo}</span>`;
+}
+function pctBadge(pct) {
+  const cls = pct >= 75 ? 'green' : pct >= 60 ? 'amber' : 'red';
+  return `<span class="badge badge-${cls}">${pct}%</span>`;
+}
+function progressBar(pct) {
+  const cls = pct >= 75 ? 'good' : pct >= 60 ? 'warn' : 'bad';
+  return `<div class="progress-bar"><div class="progress-fill ${cls}" style="width:${pct}%"></div></div>`;
+}
+
+function toggleForm(id) {
+  document.getElementById(id).classList.toggle('hidden');
+}
+
+let _carreras = [], _materias = [], _estudiantes = [];
+
+async function inicializar() {
+  _carreras = await get('/carreras/');
+  _materias = await get('/materias/');
+  _estudiantes = await get('/estudiantes/');
+  poblarSelects();
+}
+
+function poblarSelects() {
+  const optCar = _carreras.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  const optMat = _materias.map(m=>`<option value="${m.id}">${m.codigo} - ${m.nombre}</option>`).join('');
+  const optEst = _estudiantes.map(e=>`<option value="${e.id}">${e.codigo} - ${e.nombre} ${e.apellido}</option>`).join('');
+
+  ['m-carrera','e-carrera','filtro-carrera-est'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = (id.startsWith('filtro') ? '<option value="">Todas</option>' : '') + optCar;
+  });
+  ['t-materia','a-materia','a-mat-resumen','cal-materia','stat-materia','filtro-mat-trab','filtro-materia-insc'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = (id.startsWith('filtro') || id.startsWith('a-mat') || id.startsWith('cal') || id.startsWith('stat') ? '<option value="">Seleccione...</option>' : '') + optMat;
+  });
+  ['i-est','stat-est'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '<option value="">Seleccione...</option>' + optEst;
+  });
+  document.getElementById('i-mat').innerHTML = optMat;
+}
+
+// ── NAVEGACIÓN ────────────────────────────────────────────
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sec-'+name)?.classList.add('active');
+
+  const loaders = {
+    dashboard: cargarDashboard,
+    carreras: cargarCarreras,
+    materias: cargarMaterias,
+    estudiantes: cargarEstudiantes,
+    inscripciones: cargarInscripciones,
+    asistencia: () => { document.getElementById('a-fecha').value = new Date().toISOString().split('T')[0]; },
+    trabajos: cargarTrabajos,
+    calificaciones: () => {},
+    estadisticas: () => {},
+  };
+  loaders[name]?.();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────
+async function cargarDashboard() {
+  const d = await get('/estadisticas/dashboard');
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-card blue"><div class="num">${d.total_estudiantes}</div><div class="lbl">Estudiantes activos</div></div>
+    <div class="stat-card teal"><div class="num">${d.total_materias}</div><div class="lbl">Materias</div></div>
+    <div class="stat-card amber"><div class="num">${d.total_carreras}</div><div class="lbl">Carreras</div></div>
+    <div class="stat-card green"><div class="num">${d.total_inscripciones}</div><div class="lbl">Inscripciones activas</div></div>
+    <div class="stat-card blue"><div class="num">${d.total_trabajos}</div><div class="lbl">Trabajos registrados</div></div>
+    <div class="stat-card teal"><div class="num">${d.total_calificaciones}</div><div class="lbl">Calificaciones</div></div>
+    <div class="stat-card amber"><div class="num">${d.total_asistencias}</div><div class="lbl">Registros asistencia</div></div>
+  `;
+}
+
+// ── CARRERAS ──────────────────────────────────────────────
+async function cargarCarreras() {
+  const data = await get('/carreras/');
+  document.getElementById('tabla-carreras').innerHTML = data.length
+    ? data.map(c=>`<tr>
+        <td><span class="badge badge-blue">${c.codigo}</span></td>
+        <td>${c.nombre}</td>
+        <td><span class="badge ${c.activa?'badge-green':'badge-red'}">${c.activa?'Activa':'Inactiva'}</span></td>
+        <td><button class="btn btn-danger" onclick="eliminarCarrera(${c.id})">Eliminar</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" class="empty">No hay carreras registradas</td></tr>';
+}
+
+async function crearCarrera() {
+  const r = await post('/carreras/', {nombre:document.getElementById('c-nombre').value, codigo:document.getElementById('c-codigo').value});
+  if (r) { toggleForm('form-carrera'); await inicializar(); cargarCarreras(); }
+}
+async function eliminarCarrera(id) {
+  if (!confirm('¿Eliminar esta carrera?')) return;
+  await del('/carreras/'+id); await inicializar(); cargarCarreras();
+}
+
+// ── MATERIAS ──────────────────────────────────────────────
+async function cargarMaterias() {
+  const data = await get('/materias/');
+  document.getElementById('tabla-materias').innerHTML = data.length
+    ? data.map(m=>`<tr>
+        <td><span class="badge badge-teal">${m.codigo}</span></td>
+        <td>${m.nombre}</td>
+        <td>${m.carrera?.nombre||'-'}</td>
+        <td>${m.semestre}</td>
+        <td>${m.creditos}</td>
+        <td><button class="btn btn-danger" onclick="eliminarMateria(${m.id})">Eliminar</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" class="empty">No hay materias</td></tr>';
+}
+
+async function crearMateria() {
+  const r = await post('/materias/', {
+    nombre:document.getElementById('m-nombre').value,
+    codigo:document.getElementById('m-codigo').value,
+    creditos:+document.getElementById('m-creditos').value,
+    semestre:+document.getElementById('m-semestre').value,
+    carrera_id:+document.getElementById('m-carrera').value
+  });
+  if (r) { toggleForm('form-materia'); await inicializar(); cargarMaterias(); }
+}
+async function eliminarMateria(id) {
+  if (!confirm('¿Eliminar esta materia?')) return;
+  await del('/materias/'+id); await inicializar(); cargarMaterias();
+}
+
+// ── ESTUDIANTES ───────────────────────────────────────────
+async function cargarEstudiantes() {
+  const cid = document.getElementById('filtro-carrera-est')?.value;
+  const url = '/estudiantes/' + (cid ? '?carrera_id='+cid : '');
+  const data = await get(url);
+  document.getElementById('tabla-estudiantes').innerHTML = data.length
+    ? data.map(e=>`<tr>
+        <td><span class="badge badge-blue">${e.codigo}</span></td>
+        <td>${e.nombre} ${e.apellido}</td>
+        <td>${e.carrera?.nombre||'-'}</td>
+        <td>Sem. ${e.semestre_actual}</td>
+        <td><button class="btn btn-danger" onclick="eliminarEst(${e.id})">Dar baja</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" class="empty">No hay estudiantes</td></tr>';
+}
+
+async function crearEstudiante() {
+  const r = await post('/estudiantes/', {
+    nombre:document.getElementById('e-nombre').value,
+    apellido:document.getElementById('e-apellido').value,
+    codigo:document.getElementById('e-codigo').value,
+    email:document.getElementById('e-email').value,
+    semestre_actual:+document.getElementById('e-semestre').value,
+    carrera_id:+document.getElementById('e-carrera').value
+  });
+  if (r) { toggleForm('form-est'); await inicializar(); cargarEstudiantes(); }
+}
+async function eliminarEst(id) {
+  if (!confirm('¿Dar de baja a este estudiante?')) return;
+  await del('/estudiantes/'+id); cargarEstudiantes();
+}
+
+// ── INSCRIPCIONES ─────────────────────────────────────────
+async function cargarInscripciones() {
+  const mid = document.getElementById('filtro-materia-insc')?.value;
+  const sem = document.getElementById('filtro-semestre-insc')?.value;
+  let url = '/inscripciones/?';
+  if (mid) url += 'materia_id='+mid+'&';
+  if (sem) url += 'semestre='+sem;
+  const data = await get(url);
+  document.getElementById('tabla-inscripciones').innerHTML = data.length
+    ? data.map(i=>`<tr>
+        <td>${i.estudiante?.nombre||''} ${i.estudiante?.apellido||''}</td>
+        <td>${i.materia?.nombre||'-'}</td>
+        <td>${i.semestre}</td>
+        <td><span class="badge ${i.activa?'badge-green':'badge-red'}">${i.activa?'Activa':'Baja'}</span></td>
+        <td><button class="btn btn-danger" onclick="darBajaInsc(${i.id})">Dar baja</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" class="empty">No hay inscripciones</td></tr>';
+}
+
+async function crearInscripcion() {
+  const r = await post('/inscripciones/', {
+    estudiante_id:+document.getElementById('i-est').value,
+    materia_id:+document.getElementById('i-mat').value,
+    semestre:document.getElementById('i-semestre').value
+  });
+  if (r) { toggleForm('form-insc'); cargarInscripciones(); }
+}
+async function darBajaInsc(id) {
+  if (!confirm('¿Dar de baja esta inscripción?')) return;
+  await del('/inscripciones/'+id); cargarInscripciones();
+}
+
+// ── ASISTENCIA ────────────────────────────────────────────
+let asistenciaActual = {};
+
+async function cargarListaAsistencia() {
+  const mid = document.getElementById('a-materia').value;
+  const fecha = document.getElementById('a-fecha').value;
+  if (!mid || !fecha) return;
+
+  // Obtener inscritos en esta materia
+  const inscritos = await get('/inscripciones/?materia_id='+mid);
+  // Obtener asistencia ya registrada ese día
+  const ya = await get('/asistencia/?materia_id='+mid+'&fecha='+fecha);
+  const yaMap = {};
+  ya.forEach(a => yaMap[a.estudiante_id] = a.presente);
+
+  const grid = document.getElementById('grid-asistencia');
+  asistenciaActual = {};
+  if (!inscritos.length) { grid.innerHTML = '<div class="empty">No hay estudiantes inscritos</div>'; return; }
+
+  grid.innerHTML = inscritos.map(i => {
+    const presente = yaMap[i.estudiante_id] !== undefined ? yaMap[i.estudiante_id] : true;
+    asistenciaActual[i.estudiante_id] = presente;
+    return `<div class="asist-row" id="ar-${i.estudiante_id}">
+      <div class="asist-name">${i.estudiante?.nombre||''} ${i.estudiante?.apellido||''}</div>
+      <div class="toggle">
+        <button id="p-${i.estudiante_id}" class="${presente?'presente':''}" onclick="toggleAsist(${i.estudiante_id},true)">✓ Presente</button>
+        <button id="au-${i.estudiante_id}" class="${!presente?'ausente':''}" onclick="toggleAsist(${i.estudiante_id},false)">✗ Ausente</button>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('lista-asistencia').classList.remove('hidden');
+}
+
+function toggleAsist(eid, presente) {
+  asistenciaActual[eid] = presente;
+  document.getElementById('p-'+eid).className = presente ? 'presente' : '';
+  document.getElementById('au-'+eid).className = !presente ? 'ausente' : '';
+}
+
+async function guardarAsistencia() {
+  const mid = +document.getElementById('a-materia').value;
+  const fecha = document.getElementById('a-fecha').value;
+  const registros = Object.entries(asistenciaActual).map(([eid, presente]) => ({estudiante_id:+eid, presente}));
+  const r = await post('/asistencia/masiva', {materia_id:mid, fecha, registros});
+  if (r) alert(`✅ ${r.registrados} registros guardados`);
+}
+
+async function cargarResumenAsistencia() {
+  const mid = document.getElementById('a-mat-resumen').value;
+  if (!mid) return;
+  const data = await get('/asistencia/resumen/'+mid);
+  document.getElementById('tabla-asistencia').innerHTML = data.length
+    ? data.map(r=>`<tr>
+        <td>${r.codigo}</td>
+        <td>${r.nombre}</td>
+        <td>${r.total_clases}</td>
+        <td>${r.presentes}</td>
+        <td>${progressBar(r.porcentaje)}<small>${r.porcentaje}%</small></td>
+        <td>${pctBadge(r.porcentaje)}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" class="empty">Sin registros</td></tr>';
+}
+
+// ── TRABAJOS ──────────────────────────────────────────────
+async function cargarTrabajos() {
+  const mid = document.getElementById('filtro-mat-trab')?.value;
+  const data = await get('/trabajos/' + (mid ? '?materia_id='+mid : ''));
+  document.getElementById('tabla-trabajos').innerHTML = data.length
+    ? data.map(t=>`<tr>
+        <td>${t.titulo}</td>
+        <td>${t.materia?.nombre||'-'}</td>
+        <td>${badge(t.tipo)}</td>
+        <td>${t.fecha_entrega}</td>
+        <td>${t.puntaje_maximo} pts</td>
+        <td><button class="btn btn-danger" onclick="eliminarTrabajo(${t.id})">Eliminar</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" class="empty">No hay trabajos</td></tr>';
+}
+
+async function crearTrabajo() {
+  const r = await post('/trabajos/', {
+    titulo:document.getElementById('t-titulo').value,
+    materia_id:+document.getElementById('t-materia').value,
+    fecha_entrega:document.getElementById('t-fecha').value,
+    puntaje_maximo:+document.getElementById('t-puntaje').value,
+    tipo:document.getElementById('t-tipo').value,
+    descripcion:document.getElementById('t-desc').value
+  });
+  if (r) { toggleForm('form-trab'); cargarTrabajos(); }
+}
+async function eliminarTrabajo(id) {
+  if (!confirm('¿Eliminar este trabajo?')) return;
+  await del('/trabajos/'+id); cargarTrabajos();
+}
+
+// ── CALIFICACIONES ────────────────────────────────────────
+let califActual = {};
+
+async function cargarTrabajosCalif() {
+  const mid = document.getElementById('cal-materia').value;
+  if (!mid) return;
+  const data = await get('/trabajos/?materia_id='+mid);
+  document.getElementById('cal-trabajo').innerHTML =
+    '<option value="">Seleccione trabajo...</option>' +
+    data.map(t=>`<option value="${t.id}">${t.titulo} (${t.tipo})</option>`).join('');
+}
+
+async function cargarListaCalif() {
+  const tid = document.getElementById('cal-trabajo').value;
+  if (!tid) return;
+  const mid = document.getElementById('cal-materia').value;
+  const inscritos = await get('/inscripciones/?materia_id='+mid);
+  const yaCalif = await get('/calificaciones/?trabajo_id='+tid);
+  const yaMap = {};
+  yaCalif.forEach(c => yaMap[c.estudiante_id] = c.puntaje);
+  califActual = {};
+
+  const grid = document.getElementById('grid-calificaciones');
+  grid.innerHTML = inscritos.map(i => {
+    const puntaje = yaMap[i.estudiante_id] || '';
+    califActual[i.estudiante_id] = puntaje;
+    return `<div class="asist-row" style="margin-bottom:6px">
+      <div class="asist-name">${i.estudiante?.nombre||''} ${i.estudiante?.apellido||''}</div>
+      <input type="number" id="cal-${i.estudiante_id}" value="${puntaje}" min="0" max="100"
+        style="width:90px" oninput="califActual[${i.estudiante_id}]=this.value" placeholder="Nota">
+    </div>`;
+  }).join('');
+  document.getElementById('lista-calificaciones').classList.remove('hidden');
+}
+
+async function guardarCalificaciones() {
+  const tid = +document.getElementById('cal-trabajo').value;
+  const cals = Object.entries(califActual)
+    .filter(([,v]) => v !== '' && v !== undefined)
+    .map(([eid, puntaje]) => ({estudiante_id:+eid, puntaje:+puntaje}));
+  const r = await post('/calificaciones/masiva?trabajo_id='+tid, cals);
+  if (r) alert(`✅ ${r.registradas} calificaciones guardadas`);
+}
+
+// ── ESTADÍSTICAS ──────────────────────────────────────────
+async function cargarStatMateria() {
+  const mid = document.getElementById('stat-materia').value;
+  if (!mid) return;
+  const d = await get('/estadisticas/materia/'+mid);
+  const trabajos = d.trabajos_detalle || [];
+  document.getElementById('stat-mat-result').innerHTML = `
+    <div class="panel">
+      <div class="panel-title">${d.materia} (${d.codigo})</div>
+      <div class="stats-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        <div class="stat-card blue"><div class="num" style="font-size:24px">${d.inscritos}</div><div class="lbl">Inscritos</div></div>
+        <div class="stat-card teal"><div class="num" style="font-size:24px">${d.total_trabajos}</div><div class="lbl">Trabajos</div></div>
+        <div class="stat-card amber"><div class="num" style="font-size:24px">${d.porcentaje_asistencia_global}%</div><div class="lbl">Asistencia global</div></div>
+      </div>
+      ${trabajos.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>Trabajo</th><th>Tipo</th><th>Promedio</th><th>Entregados</th></tr></thead>
+        <tbody>${trabajos.map(t=>`<tr>
+          <td>${t.trabajo}</td><td>${badge(t.tipo)}</td>
+          <td><strong>${t.promedio}</strong>/100</td>
+          <td>${t.entregados}/${d.inscritos}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>` : '<div class="empty">Sin trabajos calificados</div>'}
+    </div>`;
+}
+
+async function cargarStatEst() {
+  const eid = document.getElementById('stat-est').value;
+  if (!eid) return;
+  const d = await get('/estadisticas/estudiante/'+eid);
+  document.getElementById('stat-est-result').innerHTML = `
+    <div class="panel">
+      <div class="panel-title">${d.estudiante} <span class="badge badge-blue">${d.codigo}</span></div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">${d.carrera}</div>
+      ${d.materias.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>Materia</th><th>Semestre</th><th>Asistencia</th><th>Promedio</th></tr></thead>
+        <tbody>${d.materias.map(m=>`<tr>
+          <td>${m.materia}</td><td>${m.semestre}</td>
+          <td>${progressBar(m.asistencia_pct)}<small>${m.asistencia_pct}%</small></td>
+          <td>${m.promedio ? `<strong>${m.promedio}</strong>/100` : 'Sin calificaciones'}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>` : '<div class="empty">Sin materias inscritas</div>'}
+    </div>`;
+}
+
+// ── INICIO ────────────────────────────────────────────────
+document.getElementById('a-fecha').value = new Date().toISOString().split('T')[0];
+inicializar().then(() => cargarDashboard());
+</script>
+</body>
+</html>
