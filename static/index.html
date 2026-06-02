@@ -135,6 +135,8 @@ select option{background:var(--navy3)}
   <div class="sidebar-item" onclick="showSection('asistencia')"><span class="icon">✅</span>Asistencia</div>
   <div class="sidebar-item" onclick="showSection('trabajos')"><span class="icon">📝</span>Trabajos</div>
   <div class="sidebar-item" onclick="showSection('calificaciones')"><span class="icon">🏆</span>Calificaciones</div>
+  <div class="sidebar-label">Importación</div>
+  <div class="sidebar-item" onclick="showSection('importar')"><span class="icon">📥</span>Carga Masiva</div>
   <div class="sidebar-label">Reportes</div>
   <div class="sidebar-item" onclick="showSection('estadisticas')"><span class="icon">📈</span>Estadísticas</div>
 </div>
@@ -323,6 +325,58 @@ select option{background:var(--navy3)}
   </div>
 </div>
 
+<!-- IMPORTACIÓN -->
+<div class="section" id="sec-importar">
+  <div class="section-title">📥 Carga Masiva de Estudiantes</div>
+  <div class="panel">
+    <div class="panel-title">Paso 1 — Descarga la plantilla CSV</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">La plantilla tiene el formato exacto que necesita el sistema. Ábrela en Excel o cualquier editor y completa los datos de tus estudiantes.</p>
+    <a href="/api/importar/plantilla" download="plantilla_estudiantes.csv"><button class="btn btn-outline">⬇ Descargar plantilla CSV</button></a>
+    <div style="margin-top:14px;background:var(--navy3);border-radius:var(--radius2);padding:12px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2)">
+      nombre,apellido,codigo,semestre_actual,carrera_codigo,materia_codigo,semestre_inscripcion<br>
+      Ana,Mamani,20240001,1,IM,AL101,2024-I<br>
+      Luis,Quispe,20240002,3,IMT,ED101,2024-I
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:var(--text3)">
+      ⚠ <strong>carrera_codigo</strong> debe coincidir con el código de carrera del sistema.<br>
+      <strong>materia_codigo</strong> y <strong>semestre_inscripcion</strong> son opcionales — si los incluyes, el estudiante queda inscrito automáticamente.
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Paso 2 — Consulta los códigos disponibles</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:600">CARRERAS</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Código</th><th>Nombre</th></tr></thead>
+          <tbody id="imp-carreras"><tr><td colspan="2" class="loading">Cargando...</td></tr></tbody>
+        </table></div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:600">MATERIAS</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Código</th><th>Nombre</th></tr></thead>
+          <tbody id="imp-materias"><tr><td colspan="2" class="loading">Cargando...</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Paso 3 — Sube tu archivo CSV</div>
+    <div class="form-group" style="max-width:400px">
+      <label>Selecciona el archivo CSV</label>
+      <input type="file" id="csv-file" accept=".csv" style="padding:6px">
+    </div>
+    <div class="mt8"><button class="btn btn-success" onclick="subirCSV()">📤 Importar estudiantes</button></div>
+  </div>
+  <div id="imp-resultado" class="hidden">
+    <div class="panel">
+      <div class="panel-title">Resultado de la importación</div>
+      <div id="imp-resultado-contenido"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ESTADÍSTICAS -->
 <div class="section" id="sec-estadisticas">
   <div class="section-title">Estadísticas y Reportes</div>
@@ -432,6 +486,7 @@ function showSection(name) {
     trabajos: cargarTrabajos,
     calificaciones: () => {},
     estadisticas: () => {},
+    importar: cargarImportar,
   };
   loaders[name]?.();
 }
@@ -747,6 +802,52 @@ async function cargarStatEst() {
         </tr>`).join('')}</tbody>
       </table></div>` : '<div class="empty">Sin materias inscritas</div>'}
     </div>`;
+}
+
+
+// ── IMPORTACIÓN ───────────────────────────────────────────
+async function cargarImportar() {
+  const carreras = await get('/carreras/');
+  const materias = await get('/materias/');
+  document.getElementById('imp-carreras').innerHTML = carreras.map(c =>
+    `<tr><td><span class="badge badge-blue">${c.codigo}</span></td><td>${c.nombre}</td></tr>`).join('') || '<tr><td colspan="2" class="empty">Sin carreras</td></tr>';
+  document.getElementById('imp-materias').innerHTML = materias.map(m =>
+    `<tr><td><span class="badge badge-teal">${m.codigo}</span></td><td>${m.nombre}</td></tr>`).join('') || '<tr><td colspan="2" class="empty">Sin materias</td></tr>';
+}
+
+async function subirCSV() {
+  const fileInput = document.getElementById('csv-file');
+  if (!fileInput.files.length) { alert('Selecciona un archivo CSV primero'); return; }
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+  const btn = event.target;
+  btn.textContent = '⏳ Importando...';
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/importar/estudiantes', {method:'POST', body: formData});
+    const data = await r.json();
+    const resultado = document.getElementById('imp-resultado');
+    const contenido = document.getElementById('imp-resultado-contenido');
+    resultado.classList.remove('hidden');
+    const erroresHTML = data.errores?.length
+      ? `<div style="margin-top:12px"><div style="font-size:12px;font-weight:600;color:var(--red2);margin-bottom:6px">⚠ Errores (${data.errores.length} filas)</div>
+         <div class="table-wrap"><table><thead><tr><th>Fila</th><th>Error</th></tr></thead><tbody>
+         ${data.errores.map(e => `<tr><td>${e.fila}</td><td style="color:var(--red2)">${e.error}</td></tr>`).join('')}
+         </tbody></table></div></div>` : '';
+    contenido.innerHTML = `
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+        <div class="stat-card green"><div class="num" style="font-size:28px">${data.creados}</div><div class="lbl">Estudiantes creados</div></div>
+        <div class="stat-card blue"><div class="num" style="font-size:28px">${data.actualizados}</div><div class="lbl">Actualizados</div></div>
+        <div class="stat-card teal"><div class="num" style="font-size:28px">${data.inscritos}</div><div class="lbl">Inscripciones creadas</div></div>
+      </div>
+      ${erroresHTML}
+      ${!data.errores?.length ? '<div style="color:var(--green2);font-size:13px">✅ Importación completada sin errores</div>' : ''}`;
+  } catch(e) {
+    alert('Error al importar: ' + e.message);
+  } finally {
+    btn.textContent = '📤 Importar estudiantes';
+    btn.disabled = false;
+  }
 }
 
 // ── INICIO ────────────────────────────────────────────────
