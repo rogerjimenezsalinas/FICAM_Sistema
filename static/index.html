@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FICAM — Sistema Académico (R.Jimenez)</title>
+<title>FICAM — Sistema Académico (C)(P)R.Jimenez</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -155,7 +155,7 @@ select option{background:var(--navy3)}
     <select id="filtro-carrera-est" onchange="cargarEstudiantes()" style="width:auto"><option value="">Todas las carreras</option></select>
   </div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Código</th><th>Nombre</th><th>Carreras</th><th>Semestre</th><th>Acciones</th></tr></thead>
+    <thead><tr><th>Código</th><th>Nombre</th><th>Carnet</th><th>Celular</th><th>Correo</th><th>Carreras</th><th>Semestre</th><th>Acciones</th></tr></thead>
     <tbody id="tabla-estudiantes"><tr><td colspan="5" class="loading">Cargando...</td></tr></tbody>
   </table></div>
 </div>
@@ -350,7 +350,10 @@ select option{background:var(--navy3)}
       <div class="form-group"><label>Nombre</label><input id="me-nombre"></div>
       <div class="form-group"><label>Apellido</label><input id="me-apellido"></div>
       <div class="form-group"><label>Código</label><input id="me-codigo"></div>
-      <div class="form-group"><label>Email</label><input id="me-email" type="email"></div>
+      <div class="form-group"><label>Carnet de Identidad</label><input id="me-carnet" placeholder="12345678"></div>
+      <div class="form-group"><label>Celular</label><input id="me-celular" placeholder="70012345"></div>
+      <div class="form-group"><label>Email institucional</label><input id="me-email" type="email" placeholder="codigo@ficam.edu.bo"></div>
+      <div class="form-group"><label>Correo electrónico personal</label><input id="me-correo" type="email" placeholder="nombre@gmail.com"></div>
       <div class="form-group"><label>Semestre Actual</label><input id="me-semestre" type="number" value="1" min="1" max="10"></div>
     </div>
     <div class="form-group mt8"><label>Carreras (puede seleccionar varias)</label>
@@ -555,6 +558,9 @@ function renderEstudiantes(data){
     ?data.map(e=>`<tr>
         <td><span class="badge badge-blue">${e.codigo}</span></td>
         <td>${e.nombre} ${e.apellido}</td>
+        <td>${e.carnet||'-'}</td>
+        <td>${e.celular||'-'}</td>
+        <td style="font-size:11px">${e.correo_electronico||e.email||'-'}</td>
         <td>${e.carreras?.map(c=>`<span class="badge badge-teal" style="margin:1px">${c.codigo}</span>`).join('')||'-'}</td>
         <td>Sem. ${e.semestre_actual}</td>
         <td class="flex">
@@ -570,7 +576,10 @@ function abrirModalEstudiante(e=null){
   document.getElementById('me-nombre').value=e?.nombre||'';
   document.getElementById('me-apellido').value=e?.apellido||'';
   document.getElementById('me-codigo').value=e?.codigo||'';
+  document.getElementById('me-carnet').value=e?.carnet||'';
+  document.getElementById('me-celular').value=e?.celular||'';
   document.getElementById('me-email').value=e?.email||'';
+  document.getElementById('me-correo').value=e?.correo_electronico||'';
   document.getElementById('me-semestre').value=e?.semestre_actual||1;
   // Marcar carreras actuales
   const sel=document.getElementById('me-carreras');
@@ -585,6 +594,9 @@ async function guardarEstudiante(){
   const carrera_ids=Array.from(sel.selectedOptions).map(o=>+o.value);
   const data={nombre:document.getElementById('me-nombre').value,apellido:document.getElementById('me-apellido').value,
     codigo:document.getElementById('me-codigo').value,email:document.getElementById('me-email').value,
+    carnet:document.getElementById('me-carnet').value||null,
+    celular:document.getElementById('me-celular').value||null,
+    correo_electronico:document.getElementById('me-correo').value||null,
     semestre_actual:+document.getElementById('me-semestre').value,activo:true,carrera_ids};
   const r=id?await put('/estudiantes/'+id,data):await post('/estudiantes/',data);
   if(r){cerrarModal('modal-estudiante');await inicializar();cargarEstudiantes();}
