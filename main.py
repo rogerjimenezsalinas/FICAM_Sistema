@@ -6,6 +6,7 @@ from app.database import init_db, SessionLocal
 from app.routers.academico import router_carreras, router_materias, router_estudiantes, router_inscripciones
 from app.routers.gestion import router_asistencia, router_trabajos, router_calificaciones, router_estadisticas
 from app.routers.importar import router_importar
+from app.routers.backup import router_backup
 import os
 
 @asynccontextmanager
@@ -14,34 +15,21 @@ async def lifespan(app: FastAPI):
     if os.getenv("SEED_DATA", "true").lower() == "true":
         from app.seed import seed
         db = SessionLocal()
-        try:
-            seed(db)
-        finally:
-            db.close()
+        try: seed(db)
+        finally: db.close()
     yield
 
-app = FastAPI(
-    title="FICAM — Sistema Académico",
-    version="1.0.0",
-    lifespan=lifespan
-)
+app = FastAPI(title="FICAM — Sistema Académico", version="2.0.0", lifespan=lifespan)
 
-app.include_router(router_carreras, prefix="/api")
-app.include_router(router_materias, prefix="/api")
-app.include_router(router_estudiantes, prefix="/api")
-app.include_router(router_inscripciones, prefix="/api")
-app.include_router(router_asistencia, prefix="/api")
-app.include_router(router_trabajos, prefix="/api")
-app.include_router(router_calificaciones, prefix="/api")
-app.include_router(router_estadisticas, prefix="/api")
-app.include_router(router_importar, prefix="/api")
+for router in [router_carreras, router_materias, router_estudiantes, router_inscripciones,
+               router_asistencia, router_trabajos, router_calificaciones, router_estadisticas,
+               router_importar, router_backup]:
+    app.include_router(router, prefix="/api")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
-async def root():
-    return FileResponse("static/index.html")
+async def root(): return FileResponse("static/index.html")
 
 @app.get("/health")
-async def health():
-    return {"status": "ok", "app": "FICAM Sistema Académico"}
+async def health(): return {"status": "ok", "version": "2.0"}
