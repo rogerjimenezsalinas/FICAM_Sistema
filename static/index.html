@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FICAM — Sistema Académico (C)(P)R.Jimenez</title>
+<title>FICAM — Sistema Académico (C)(P)R.Jiméenz</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -650,11 +650,18 @@ async function cargarListaAsistencia(){
   asistenciaActual={};
   const grid=document.getElementById('grid-asistencia');
   if(!inscritos.length){grid.innerHTML='<div class="empty">Sin estudiantes inscritos</div>';return;}
+  // Ordenar alfabéticamente por apellido luego nombre
+  inscritos.sort((a,b)=>{
+    const apellA=(a.estudiante?.apellido||'').toLowerCase();
+    const apellB=(b.estudiante?.apellido||'').toLowerCase();
+    if(apellA!==apellB) return apellA.localeCompare(apellB,'es');
+    return (a.estudiante?.nombre||'').toLowerCase().localeCompare((b.estudiante?.nombre||'').toLowerCase(),'es');
+  });
   grid.innerHTML=inscritos.map(i=>{
     const presente=yaMap[i.estudiante_id]!==undefined?yaMap[i.estudiante_id]:true;
     asistenciaActual[i.estudiante_id]=presente;
     return `<div class="asist-row">
-      <div class="asist-name">${i.estudiante?.nombre||''} ${i.estudiante?.apellido||''}</div>
+      <div class="asist-name">${i.estudiante?.apellido||''}, ${i.estudiante?.nombre||''}</div>
       <div class="toggle">
         <button id="p-${i.estudiante_id}" class="${presente?'presente':''}" onclick="toggleAsist(${i.estudiante_id},true)">✓ Presente</button>
         <button id="au-${i.estudiante_id}" class="${!presente?'ausente':''}" onclick="toggleAsist(${i.estudiante_id},false)">✗ Ausente</button>
@@ -685,6 +692,8 @@ async function cargarResumenAsistencia(){
   const mid=document.getElementById('a-mat-resumen').value;
   if(!mid)return;
   const data=await get('/asistencia/resumen/'+mid);
+  // Ordenar por apellido (el campo nombre viene como "Nombre Apellido" del backend)
+  data.sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
   document.getElementById('tabla-asistencia').innerHTML=data.length
     ?data.map(r=>`<tr><td>${r.codigo}</td><td>${r.nombre}</td><td>${r.presentes}</td><td>${r.ausentes}</td><td>${pct(r.porcentaje)}</td></tr>`).join('')
     :'<tr><td colspan="5" class="empty">Sin registros</td></tr>';
@@ -753,7 +762,7 @@ async function cargarListaCalif(){
     const p=yaMap[i.estudiante_id]??'';
     califActual[i.estudiante_id]=p;
     return `<div class="asist-row">
-      <div class="asist-name">${i.estudiante?.nombre||''} ${i.estudiante?.apellido||''}</div>
+      <div class="asist-name">${i.estudiante?.apellido||''}, ${i.estudiante?.nombre||''}</div>
       <input type="number" id="cal-${i.estudiante_id}" value="${p}" min="0" max="100" style="width:90px"
         oninput="califActual[${i.estudiante_id}]=this.value" placeholder="Nota">
     </div>`;
