@@ -420,7 +420,14 @@ async function inicializar(){
 function poblarSelects(){
   const optCar=_carreras.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
   const optMat=_materias.map(m=>`<option value="${m.id}">${m.codigo} - ${m.nombre}</option>`).join('');
-  const optEst=_estudiantes.map(e=>`<option value="${e.id}">${e.codigo} - ${e.nombre} ${e.apellido}</option>`).join('');
+  // Ordenar estudiantes por apellido, nombre antes de poblar selects
+  const estOrdenados=[..._estudiantes].sort((a,b)=>{
+    const apellA=(a.apellido||'').toLowerCase();
+    const apellB=(b.apellido||'').toLowerCase();
+    if(apellA!==apellB) return apellA.localeCompare(apellB,'es');
+    return (a.nombre||'').toLowerCase().localeCompare((b.nombre||'').toLowerCase(),'es');
+  });
+  const optEst=estOrdenados.map(e=>`<option value="${e.id}">${e.apellido}, ${e.nombre} [${e.codigo}]</option>`).join('');
   const optCarFiltro='<option value="">Todas</option>'+optCar;
 
   ['mm-carrera'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=optCar;});
