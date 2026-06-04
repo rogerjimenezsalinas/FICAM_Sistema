@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FICAM — Sistema Académico (C)(P)R.Jiméenz</title>
+<title>FICAM — Sistema Académico (C)(P)R.Jiménez</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -614,9 +614,16 @@ async function cargarInscripciones(){
   if(mid)url+='materia_id='+mid+'&';
   if(sem)url+='semestre='+sem;
   const data=await get(url);
+  // Ordenar alfabéticamente por apellido luego nombre
+  data.sort((a,b)=>{
+    const apellA=(a.estudiante?.apellido||'').toLowerCase();
+    const apellB=(b.estudiante?.apellido||'').toLowerCase();
+    if(apellA!==apellB) return apellA.localeCompare(apellB,'es');
+    return (a.estudiante?.nombre||'').toLowerCase().localeCompare((b.estudiante?.nombre||'').toLowerCase(),'es');
+  });
   document.getElementById('tabla-inscripciones').innerHTML=data.length
     ?data.map(i=>`<tr>
-        <td>${i.estudiante?.nombre||''} ${i.estudiante?.apellido||''} <span class="badge badge-blue">${i.estudiante?.codigo||''}</span></td>
+        <td>${i.estudiante?.apellido||''}, ${i.estudiante?.nombre||''} <span class="badge badge-blue">${i.estudiante?.codigo||''}</span></td>
         <td>${i.materia?.nombre||'-'}</td>
         <td>${i.semestre}</td>
         <td><span class="badge ${i.activa?'badge-green':'badge-red'}">${i.activa?'Activa':'Baja'}</span></td>
