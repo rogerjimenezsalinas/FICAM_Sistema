@@ -87,13 +87,37 @@ select option{background:var(--navy3)}
 </style>
 </head>
 <body>
+
+<!-- LOGIN -->
+<div id="login-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)">
+  <div style="width:100%;max-width:340px;padding:32px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius)">
+    <div class="logo" style="justify-content:center;margin-bottom:4px;font-size:18px">🎓 <span>FICAM</span></div>
+    <p style="text-align:center;color:var(--text2);font-size:12px;margin-bottom:20px">Sistema Académico v2 — Inicia sesión</p>
+    <div class="form-group mt8"><label>Usuario</label><input id="login-user" placeholder="usuario" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()"></div>
+    <div class="form-group mt8"><label>Contraseña</label><input id="login-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')hacerLogin()"></div>
+    <div id="login-error" class="hidden" style="color:var(--red2);font-size:12px;margin-top:8px"></div>
+    <button class="btn btn-primary mt16" style="width:100%;justify-content:center" onclick="hacerLogin()">Ingresar</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
 <div class="topbar">
   <div class="logo">🎓 <span>FICAM</span> Sistema Académico v2</div>
+  <div class="flex" style="margin-left:auto">
+    <label style="color:var(--text2);font-size:12px;white-space:nowrap">Gestión activa:</label>
+    <select id="topbar-gestion" onchange="cambiarGestionActiva()" style="width:170px"></select>
+    <span id="topbar-usuario" style="color:var(--text2);font-size:12px;margin-left:12px"></span>
+    <button class="btn btn-outline btn-sm" onclick="nav('cuenta')">👤 Mi Cuenta</button>
+    <button class="btn btn-outline btn-sm" onclick="cerrarSesion()">🚪 Salir</button>
+  </div>
 </div>
 <div class="layout">
 <div class="sidebar">
   <div class="sidebar-label">Principal</div>
   <div class="sidebar-item active" onclick="nav('dashboard')">📊 Dashboard</div>
+  <div class="sidebar-label">Períodos</div>
+  <div class="sidebar-item" onclick="nav('gestiones')">🗓 Gestiones Académicas</div>
   <div class="sidebar-label">Catálogos</div>
   <div class="sidebar-item" onclick="nav('carreras')">🏫 Carreras</div>
   <div class="sidebar-item" onclick="nav('materias')">📚 Materias</div>
@@ -108,6 +132,9 @@ select option{background:var(--navy3)}
   <div class="sidebar-label">Herramientas</div>
   <div class="sidebar-item" onclick="nav('importar')">📥 Carga Masiva</div>
   <div class="sidebar-item" onclick="nav('backup')">💾 Backup</div>
+  <div class="sidebar-label">Cuenta</div>
+  <div class="sidebar-item" onclick="nav('cuenta')">👤 Mi Cuenta</div>
+  <div class="sidebar-item hidden" id="nav-usuarios" onclick="nav('usuarios')">🔑 Usuarios</div>
 </div>
 <div class="main">
 
@@ -121,6 +148,35 @@ select option{background:var(--navy3)}
     <div class="panel" style="cursor:pointer" onclick="nav('calificaciones')"><div class="panel-title">🏆 Calificar</div><p style="font-size:12px;color:var(--text2)">Registrar notas de trabajos</p></div>
     <div class="panel" style="cursor:pointer" onclick="nav('estadisticas')"><div class="panel-title">📈 Estadísticas</div><p style="font-size:12px;color:var(--text2)">Ver rendimiento académico</p></div>
     <div class="panel" style="cursor:pointer" onclick="nav('backup')"><div class="panel-title">💾 Backup</div><p style="font-size:12px;color:var(--text2)">Descargar respaldo de datos</p></div>
+  </div>
+</div>
+
+<!-- GESTIONES ACADÉMICAS -->
+<div class="section" id="sec-gestiones">
+  <div class="section-title">Gestiones Académicas <button class="btn btn-primary" onclick="abrirModalGestion()">+ Nueva Gestión</button></div>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Cada gestión es un período (ej: <strong>1/2026</strong> enero-junio, <strong>2/2026</strong> julio-diciembre). Las materias son las mismas; lo que cambia por gestión son las inscripciones, asistencias y trabajos.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Código</th><th>Nombre</th><th>Vigencia</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody id="tabla-gestiones"><tr><td colspan="5" class="loading">Cargando...</td></tr></tbody>
+  </table></div>
+
+  <div class="panel">
+    <div class="panel-title">🔁 Cierre de Gestión y Promoción de Repitentes</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">
+      Antes de trasladar: en <strong>Inscripciones</strong>, marca el estado de cada estudiante en la gestión que cierra
+      (aprobado / reprobado / retirado). Los <strong>reprobados</strong> se trasladan automáticamente a la gestión destino
+      como <strong>repitentes</strong> de la misma materia. Los aprobados y retirados no se trasladan — así se incorporan
+      los estudiantes nuevos junto a los repitentes por carga masiva o inscripción manual.
+    </p>
+    <div class="form-grid">
+      <div class="form-group"><label>Gestión que cierra (origen)</label><select id="prom-origen"></select></div>
+      <div class="form-group"><label>Gestión que abre (destino)</label><select id="prom-destino"></select></div>
+    </div>
+    <div class="mt8 flex">
+      <button class="btn btn-outline" onclick="previewPromocion()">👁 Previsualizar repitentes</button>
+      <button class="btn btn-warning" onclick="ejecutarPromocion()">🔁 Trasladar repitentes a destino</button>
+    </div>
+    <div id="prom-resultado" class="mt16"></div>
   </div>
 </div>
 
@@ -165,10 +221,17 @@ select option{background:var(--navy3)}
   <div class="section-title">Inscripciones <button class="btn btn-primary" onclick="abrirModalInscripcion()">+ Inscribir</button></div>
   <div class="flex" style="margin-bottom:12px">
     <select id="filtro-materia-insc" onchange="cargarInscripciones()" style="width:auto"><option value="">Todas las materias</option></select>
-    <input id="filtro-sem-insc" placeholder="Semestre (ej: 2024-I)" oninput="cargarInscripciones()" style="width:180px">
+    <select id="filtro-estado-insc" onchange="cargarInscripciones()" style="width:auto">
+      <option value="">Todos los estados</option>
+      <option value="cursando">Cursando</option>
+      <option value="aprobado">Aprobado</option>
+      <option value="reprobado">Reprobado</option>
+      <option value="retirado">Retirado</option>
+    </select>
+    <small style="color:var(--text3)">Se muestra la gestión activa del selector superior</small>
   </div>
   <div class="table-wrap"><table>
-    <thead><tr><th>Estudiante</th><th>Materia</th><th>Semestre</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <thead><tr><th>Estudiante</th><th>Materia</th><th>Estado</th><th>Repitente</th><th>Acciones</th></tr></thead>
     <tbody id="tabla-inscripciones"><tr><td colspan="5" class="loading">Cargando...</td></tr></tbody>
   </table></div>
 </div>
@@ -253,10 +316,10 @@ select option{background:var(--navy3)}
   <div class="section-title">📥 Carga Masiva de Estudiantes</div>
   <div class="panel">
     <div class="panel-title">Paso 1 — Descarga la plantilla</div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Completa la plantilla con los datos de tus estudiantes. La columna <strong>carrera_codigo</strong> acepta múltiples carreras separadas por coma.</p>
-    <a href="/api/importar/plantilla" download><button class="btn btn-outline">⬇ Descargar plantilla CSV</button></a>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Completa la plantilla con los datos de tus estudiantes. La columna <strong>carrera_codigo</strong> acepta múltiples carreras separadas por coma. La columna <strong>gestion_codigo</strong> indica el período (ej: 1/2026); si la dejas vacía se usa la gestión activa del selector superior. <strong>repitente</strong> acepta si/no.</p>
+    <button class="btn btn-outline" onclick="descargarAutenticado('/api/importar/plantilla','plantilla_estudiantes.csv')">⬇ Descargar plantilla CSV</button>
     <div style="margin-top:12px;background:var(--navy3);border-radius:var(--radius2);padding:10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2)">
-      nombre, apellido, codigo, semestre_actual, carrera_codigo, materia_codigo, semestre_inscripcion
+      nombre, apellido, codigo, semestre_actual, carrera_codigo, celular, carnet, correo_electronico, materia_codigo, gestion_codigo, repitente, estado
     </div>
   </div>
   <div class="panel">
@@ -292,24 +355,95 @@ select option{background:var(--navy3)}
   <div class="panel">
     <div class="panel-title">Backup completo</div>
     <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Descarga un archivo JSON con todos los datos del sistema. Guárdalo en un lugar seguro.</p>
-    <a href="/api/backup/json" download><button class="btn btn-success">⬇ Descargar backup JSON completo</button></a>
+    <button class="btn btn-success" onclick="descargarAutenticado('/api/backup/json','ficam_backup_completo.json')">⬇ Descargar backup JSON completo</button>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Backup de una gestión específica</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Útil para archivar un semestre ya cerrado. Incluye catálogos completos y solo las inscripciones/asistencias/trabajos/calificaciones de esa gestión.</p>
+    <div class="flex">
+      <select id="backup-gestion-sel" style="width:auto"></select>
+      <button class="btn btn-outline" onclick="descargarBackupGestion()">⬇ Descargar backup de esta gestión</button>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">⚠️ Restaurar backup completo</div>
+    <p style="font-size:13px;color:var(--red2);margin-bottom:12px">Esto <strong>borra todos los datos actuales</strong> y los reemplaza por los del archivo JSON. Úsalo solo para recuperarte de una pérdida de datos.</p>
+    <div class="form-group" style="max-width:350px"><label>Archivo de backup (.json)</label><input type="file" id="restore-file" accept=".json"></div>
+    <div class="mt8"><button class="btn btn-danger" onclick="restaurarBackup()">♻ Restaurar sistema completo</button></div>
+    <div id="restore-resultado" class="mt8"></div>
   </div>
   <div class="panel">
     <div class="panel-title">Exportar tabla específica (CSV)</div>
     <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Descarga cualquier tabla en formato CSV para abrir en Excel.</p>
     <div class="flex">
-      <a href="/api/backup/csv/estudiantes" download><button class="btn btn-outline btn-sm">👥 Estudiantes</button></a>
-      <a href="/api/backup/csv/materias" download><button class="btn btn-outline btn-sm">📚 Materias</button></a>
-      <a href="/api/backup/csv/carreras" download><button class="btn btn-outline btn-sm">🏫 Carreras</button></a>
-      <a href="/api/backup/csv/inscripciones" download><button class="btn btn-outline btn-sm">📋 Inscripciones</button></a>
-      <a href="/api/backup/csv/asistencias" download><button class="btn btn-outline btn-sm">✅ Asistencias</button></a>
-      <a href="/api/backup/csv/calificaciones" download><button class="btn btn-outline btn-sm">🏆 Calificaciones</button></a>
+      <button class="btn btn-outline btn-sm" onclick="descargarAutenticado('/api/backup/csv/gestiones','ficam_gestiones.csv')">🗓 Gestiones</button>
+      <button class="btn btn-outline btn-sm" onclick="descargarAutenticado('/api/backup/csv/estudiantes','ficam_estudiantes.csv')">👥 Estudiantes</button>
+      <button class="btn btn-outline btn-sm" onclick="descargarAutenticado('/api/backup/csv/materias','ficam_materias.csv')">📚 Materias</button>
+      <button class="btn btn-outline btn-sm" onclick="descargarAutenticado('/api/backup/csv/carreras','ficam_carreras.csv')">🏫 Carreras</button>
+      <button class="btn btn-outline btn-sm" onclick="descargarAutenticado('/api/backup/csv/inscripciones','ficam_inscripciones.csv')">📋 Inscripciones</button>
+      <button class="btn btn-outline btn-sm" onclick="descargarAutenticado('/api/backup/csv/asistencias','ficam_asistencias.csv')">✅ Asistencias</button>
+      <button class="btn btn-outline btn-sm" onclick="descargarAutenticado('/api/backup/csv/trabajos','ficam_trabajos.csv')">📝 Trabajos</button>
+      <button class="btn btn-outline btn-sm" onclick="descargarAutenticado('/api/backup/csv/calificaciones','ficam_calificaciones.csv')">🏆 Calificaciones</button>
     </div>
   </div>
 </div>
 
+<!-- MI CUENTA -->
+<div class="section" id="sec-cuenta">
+  <div class="section-title">👤 Mi Cuenta</div>
+  <div class="panel" style="max-width:400px">
+    <div class="panel-title" id="cuenta-info">—</div>
+    <div class="form-group mt8"><label>Contraseña actual</label><input type="password" id="cc-actual"></div>
+    <div class="form-group mt8"><label>Contraseña nueva (mín. 6 caracteres)</label><input type="password" id="cc-nueva"></div>
+    <div class="mt8"><button class="btn btn-success" onclick="guardarCambioClave()">Cambiar contraseña</button></div>
+    <div id="cc-resultado" class="mt8"></div>
+  </div>
+</div>
+
+<!-- USUARIOS (solo admin) -->
+<div class="section" id="sec-usuarios">
+  <div class="section-title">🔑 Usuarios del Sistema <button class="btn btn-primary" onclick="abrirModalUsuario()">+ Nuevo Usuario</button></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody id="tabla-usuarios"><tr><td colspan="5" class="loading">Cargando...</td></tr></tbody>
+  </table></div>
+</div>
+
 </div><!-- /main -->
 </div><!-- /layout -->
+</div><!-- /app -->
+
+
+<!-- MODAL USUARIO -->
+<div class="modal-overlay hidden" id="modal-usuario">
+  <div class="modal">
+    <div class="modal-title"><span id="mu-titulo">Nuevo Usuario</span><button class="modal-close" onclick="cerrarModal('modal-usuario')">✕</button></div>
+    <input type="hidden" id="mu-id">
+    <div class="form-grid">
+      <div class="form-group"><label>Usuario (username)</label><input id="mu-username" placeholder="jperez"></div>
+      <div class="form-group"><label>Nombre completo</label><input id="mu-nombre" placeholder="Juan Pérez"></div>
+      <div class="form-group" id="mu-pass-group"><label>Contraseña (mín. 6 caracteres)</label><input type="password" id="mu-password"></div>
+      <div class="form-group"><label>Rol</label><select id="mu-rol"><option value="docente">Docente</option><option value="admin">Administrador</option></select></div>
+      <div class="form-group"><label>Estado</label><select id="mu-activo"><option value="true">Activo</option><option value="false">Inactivo</option></select></div>
+    </div>
+    <div class="mt8 flex"><button class="btn btn-success" onclick="guardarUsuario()">Guardar</button><button class="btn btn-outline" onclick="cerrarModal('modal-usuario')">Cancelar</button></div>
+  </div>
+</div>
+
+<!-- MODAL GESTION -->
+<div class="modal-overlay hidden" id="modal-gestion">
+  <div class="modal">
+    <div class="modal-title"><span id="mg-titulo">Nueva Gestión</span><button class="modal-close" onclick="cerrarModal('modal-gestion')">✕</button></div>
+    <input type="hidden" id="mg-id">
+    <div class="form-grid">
+      <div class="form-group"><label>Código</label><input id="mg-codigo" placeholder="1/2026"></div>
+      <div class="form-group"><label>Nombre</label><input id="mg-nombre" placeholder="Enero - Junio 2026"></div>
+      <div class="form-group"><label>Fecha inicio</label><input type="date" id="mg-inicio"></div>
+      <div class="form-group"><label>Fecha fin</label><input type="date" id="mg-fin"></div>
+    </div>
+    <div class="mt8 flex"><button class="btn btn-success" onclick="guardarGestion()">Guardar</button><button class="btn btn-outline" onclick="cerrarModal('modal-gestion')">Cancelar</button></div>
+  </div>
+</div>
 
 <!-- MODAL CARRERA -->
 <div class="modal-overlay hidden" id="modal-carrera">
@@ -371,7 +505,8 @@ select option{background:var(--navy3)}
     <div class="form-grid">
       <div class="form-group"><label>Estudiante</label><select id="mi-est"></select></div>
       <div class="form-group"><label>Materia</label><select id="mi-mat"></select></div>
-      <div class="form-group"><label>Semestre</label><input id="mi-semestre" placeholder="2024-I"></div>
+      <div class="form-group"><label>Gestión</label><select id="mi-gestion"></select></div>
+      <div class="form-group"><label>Repitente</label><select id="mi-repitente"><option value="false">No</option><option value="true">Sí</option></select></div>
     </div>
     <div class="mt8 flex"><button class="btn btn-success" onclick="guardarInscripcion()">Inscribir</button><button class="btn btn-outline" onclick="cerrarModal('modal-inscripcion')">Cancelar</button></div>
   </div>
@@ -385,6 +520,7 @@ select option{background:var(--navy3)}
     <div class="form-grid">
       <div class="form-group"><label>Título</label><input id="mt-titulo-inp" placeholder="Tarea 1"></div>
       <div class="form-group"><label>Materia</label><select id="mt-materia"></select></div>
+      <div class="form-group"><label>Gestión</label><select id="mt-gestion"></select></div>
       <div class="form-group"><label>Tipo</label><select id="mt-tipo"><option value="tarea">Tarea</option><option value="proyecto">Proyecto</option><option value="examen">Examen</option><option value="practica">Práctica</option></select></div>
       <div class="form-group"><label>Fecha Entrega</label><input type="date" id="mt-fecha"></div>
       <div class="form-group"><label>Puntaje Máx.</label><input type="number" id="mt-puntaje" value="100"></div>
@@ -397,19 +533,197 @@ select option{background:var(--navy3)}
 <script>
 const API = '';
 let _carreras=[], _materias=[], _estudiantes=[], _todosEstudiantes=[];
+let _gestiones=[], _gestionActivaId=null;
+let _token=localStorage.getItem('ficam_token')||null;
+let _usuarioActual=null;
 
-async function get(path){const r=await fetch(API+'/api'+path);return r.ok?r.json():[];}
-async function post(path,data){const r=await fetch(API+'/api'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(!r.ok){const e=await r.json();alert(e.detail||'Error al guardar');return null;}return r.json();}
-async function put(path,data){const r=await fetch(API+'/api'+path,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(!r.ok){const e=await r.json();alert(e.detail||'Error al actualizar');return null;}return r.json();}
-async function del(path){const r=await fetch(API+'/api'+path,{method:'DELETE'});return r.ok;}
+function authHeaders(extra={}){
+  const h={...extra};
+  if(_token)h['Authorization']='Bearer '+_token;
+  return h;
+}
+async function get(path){
+  const r=await fetch(API+'/api'+path,{headers:authHeaders()});
+  if(r.status===401){sesionExpirada();return [];}
+  return r.ok?r.json():[];
+}
+async function post(path,data){
+  const r=await fetch(API+'/api'+path,{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify(data)});
+  if(r.status===401){sesionExpirada();return null;}
+  if(!r.ok){const e=await r.json();alert(e.detail||'Error al guardar');return null;}
+  return r.json();
+}
+async function put(path,data){
+  const r=await fetch(API+'/api'+path,{method:'PUT',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify(data)});
+  if(r.status===401){sesionExpirada();return null;}
+  if(!r.ok){const e=await r.json();alert(e.detail||'Error al actualizar');return null;}
+  return r.json();
+}
+async function del(path){
+  const r=await fetch(API+'/api'+path,{method:'DELETE',headers:authHeaders()});
+  if(r.status===401){sesionExpirada();return false;}
+  return r.ok;
+}
+async function descargarAutenticado(url,nombreSugerido){
+  try{
+    const r=await fetch(url,{headers:authHeaders()});
+    if(r.status===401){sesionExpirada();return;}
+    if(!r.ok){alert('No se pudo descargar el archivo');return;}
+    const blob=await r.blob();
+    const cd=r.headers.get('Content-Disposition')||'';
+    const m=cd.match(/filename=([^;]+)/);
+    const nombre=m?m[1].replace(/"/g,''):nombreSugerido;
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download=nombre;
+    document.body.appendChild(a);a.click();a.remove();
+    URL.revokeObjectURL(a.href);
+  }catch(e){alert('Error al descargar: '+e.message);}
+}
+function sesionExpirada(){
+  _token=null;localStorage.removeItem('ficam_token');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-error').classList.remove('hidden');
+  document.getElementById('login-error').textContent='Tu sesión expiró. Vuelve a iniciar sesión.';
+}
+
+async function hacerLogin(){
+  const username=document.getElementById('login-user').value.trim();
+  const password=document.getElementById('login-pass').value;
+  const errEl=document.getElementById('login-error');
+  errEl.classList.add('hidden');
+  if(!username||!password){errEl.textContent='Ingresa usuario y contraseña';errEl.classList.remove('hidden');return;}
+  try{
+    const r=await fetch(API+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    if(!r.ok){const e=await r.json();errEl.textContent=e.detail||'Usuario o contraseña incorrectos';errEl.classList.remove('hidden');return;}
+    const data=await r.json();
+    _token=data.access_token;_usuarioActual=data.usuario;
+    localStorage.setItem('ficam_token',_token);
+    mostrarApp();
+  }catch(e){errEl.textContent='No se pudo conectar con el servidor';errEl.classList.remove('hidden');}
+}
+function cerrarSesion(){
+  _token=null;_usuarioActual=null;
+  localStorage.removeItem('ficam_token');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-user').value='';document.getElementById('login-pass').value='';
+  document.getElementById('login-error').classList.add('hidden');
+}
+async function mostrarApp(){
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('topbar-usuario').textContent=`${_usuarioActual.nombre_completo||_usuarioActual.username} (${_usuarioActual.rol})`;
+  document.getElementById('nav-usuarios').classList.toggle('hidden', _usuarioActual.rol!=='admin');
+  await inicializar();
+  cargarDashboard();
+}
+async function arrancar(){
+  if(!_token){document.getElementById('login-screen').classList.remove('hidden');return;}
+  const r=await fetch(API+'/api/auth/me',{headers:authHeaders()});
+  if(!r.ok){cerrarSesion();return;}
+  _usuarioActual=await r.json();
+  await mostrarApp();
+}
 
 function badge(tipo){const m={tarea:'blue',proyecto:'teal',examen:'amber',practica:'green'};return `<span class="badge badge-${m[tipo]||'blue'}">${tipo}</span>`;}
 function pct(p){const c=p>=75?'good':p>=60?'warn':'bad';return `<div class="progress-bar"><div class="progress-fill ${c}" style="width:${p}%"></div></div><small>${p}%</small>`;}
+function badgeEstado(e){const m={cursando:'blue',aprobado:'green',reprobado:'red',retirado:'amber'};return `<span class="badge badge-${m[e]||'blue'}">${e}</span>`;}
 
 function abrirModal(id){document.getElementById(id).classList.remove('hidden');}
 function cerrarModal(id){document.getElementById(id).classList.add('hidden');}
 
+// ── MI CUENTA / USUARIOS ────────────────────────────────────
+function cargarCuenta(){
+  document.getElementById('cuenta-info').textContent=`${_usuarioActual.nombre_completo||_usuarioActual.username} — @${_usuarioActual.username} (${_usuarioActual.rol})`;
+  document.getElementById('cc-actual').value='';document.getElementById('cc-nueva').value='';
+  document.getElementById('cc-resultado').innerHTML='';
+}
+async function guardarCambioClave(){
+  const password_actual=document.getElementById('cc-actual').value;
+  const password_nueva=document.getElementById('cc-nueva').value;
+  if(password_nueva.length<6){alert('La nueva contraseña debe tener al menos 6 caracteres');return;}
+  const r=await post('/auth/cambiar-clave',{password_actual,password_nueva});
+  if(r)document.getElementById('cc-resultado').innerHTML='<div style="color:var(--green2);font-size:13px">✅ Contraseña actualizada</div>';
+}
+async function cargarUsuarios(){
+  const data=await get('/auth/usuarios');
+  document.getElementById('tabla-usuarios').innerHTML=data.length
+    ?data.map(u=>`<tr>
+        <td><span class="badge badge-blue">@${u.username}</span></td>
+        <td>${u.nombre_completo||'-'}</td>
+        <td><span class="badge ${u.rol==='admin'?'badge-amber':'badge-teal'}">${u.rol}</span></td>
+        <td><span class="badge ${u.activo?'badge-green':'badge-red'}">${u.activo?'Activo':'Inactivo'}</span></td>
+        <td class="flex">
+          <button class="btn btn-warning btn-xs" onclick='editarUsuario(${JSON.stringify(u)})'>✏ Editar</button>
+          <button class="btn btn-outline btn-xs" onclick="resetearClaveUsuario(${u.id},'${u.username}')">🔑 Resetear clave</button>
+          ${u.id!==_usuarioActual.id?`<button class="btn btn-danger btn-xs" onclick="eliminarUsuario(${u.id})">🗑</button>`:''}
+        </td></tr>`).join('')
+    :'<tr><td colspan="5" class="empty">Sin usuarios</td></tr>';
+}
+function abrirModalUsuario(u=null){
+  document.getElementById('mu-id').value=u?.id||'';
+  document.getElementById('mu-titulo').textContent=u?'Editar Usuario':'Nuevo Usuario';
+  document.getElementById('mu-username').value=u?.username||'';
+  document.getElementById('mu-username').disabled=!!u;
+  document.getElementById('mu-nombre').value=u?.nombre_completo||'';
+  document.getElementById('mu-rol').value=u?.rol||'docente';
+  document.getElementById('mu-activo').value=u?String(u.activo):'true';
+  document.getElementById('mu-pass-group').style.display=u?'none':'flex';
+  document.getElementById('mu-password').value='';
+  abrirModal('modal-usuario');
+}
+function editarUsuario(u){abrirModalUsuario(u);}
+async function guardarUsuario(){
+  const id=document.getElementById('mu-id').value;
+  if(id){
+    const data={nombre_completo:document.getElementById('mu-nombre').value,rol:document.getElementById('mu-rol').value,
+      activo:document.getElementById('mu-activo').value==='true'};
+    const r=await put('/auth/usuarios/'+id,data);
+    if(r){cerrarModal('modal-usuario');cargarUsuarios();}
+  }else{
+    const password=document.getElementById('mu-password').value;
+    if(password.length<6){alert('La contraseña debe tener al menos 6 caracteres');return;}
+    const data={username:document.getElementById('mu-username').value,password,
+      nombre_completo:document.getElementById('mu-nombre').value,rol:document.getElementById('mu-rol').value,
+      activo:document.getElementById('mu-activo').value==='true'};
+    const r=await post('/auth/usuarios',data);
+    if(r){cerrarModal('modal-usuario');cargarUsuarios();}
+  }
+}
+async function resetearClaveUsuario(id,username){
+  const nueva=prompt(`Nueva contraseña para @${username} (mín. 6 caracteres):`);
+  if(!nueva)return;
+  if(nueva.length<6){alert('Mínimo 6 caracteres');return;}
+  const r=await post('/auth/usuarios/'+id+'/resetear-clave',{password_nueva:nueva});
+  if(r)alert('✅ Contraseña actualizada');
+}
+async function eliminarUsuario(id){
+  if(!confirm('¿Eliminar este usuario?'))return;
+  if(await del('/auth/usuarios/'+id))cargarUsuarios();
+}
+
+// ── GESTIÓN ACADÉMICA (período activo global) ──────────────
+async function cargarGestionesGlobal(){
+  _gestiones=await get('/gestiones/');
+  const guardada=localStorage.getItem('ficam_gestion_activa');
+  let activa=_gestiones.find(g=>String(g.id)===guardada) || _gestiones.find(g=>g.activa) || _gestiones[0];
+  _gestionActivaId=activa?activa.id:null;
+  const sel=document.getElementById('topbar-gestion');
+  sel.innerHTML=_gestiones.length
+    ?_gestiones.map(g=>`<option value="${g.id}">${g.codigo}${g.cerrada?' 🔒':''}</option>`).join('')
+    :'<option value="">Sin gestiones — crea una</option>';
+  if(_gestionActivaId) sel.value=_gestionActivaId;
+}
+function cambiarGestionActiva(){
+  _gestionActivaId=+document.getElementById('topbar-gestion').value;
+  localStorage.setItem('ficam_gestion_activa', _gestionActivaId);
+  const activo=document.querySelector('.section.active')?.id.replace('sec-','');
+  nav(activo||'dashboard');
+}
+
 async function inicializar(){
+  await cargarGestionesGlobal();
   _carreras=await get('/carreras/');
   _materias=await get('/materias/');
   _estudiantes=await get('/estudiantes/');
@@ -420,6 +734,7 @@ async function inicializar(){
 function poblarSelects(){
   const optCar=_carreras.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
   const optMat=_materias.map(m=>`<option value="${m.id}">${m.codigo} - ${m.nombre}</option>`).join('');
+  const optGestion=_gestiones.map(g=>`<option value="${g.id}">${g.codigo}${g.cerrada?' 🔒':''}</option>`).join('');
   // Ordenar estudiantes por apellido, nombre antes de poblar selects
   const estOrdenados=[..._estudiantes].sort((a,b)=>{
     const apellA=(a.apellido||'').toLowerCase();
@@ -439,6 +754,9 @@ function poblarSelects(){
   });
   ['mi-est','stat-est'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">Seleccione...</option>'+optEst;});
   document.getElementById('mi-mat').innerHTML=optMat;
+  ['mi-gestion','mt-gestion','prom-origen','prom-destino','backup-gestion-sel'].forEach(id=>{
+    const el=document.getElementById(id);if(el){el.innerHTML=optGestion;if(_gestionActivaId)el.value=_gestionActivaId;}
+  });
 }
 
 function nav(name){
@@ -446,25 +764,97 @@ function nav(name){
   document.querySelectorAll('.sidebar-item').forEach(t=>t.classList.remove('active'));
   document.getElementById('sec-'+name)?.classList.add('active');
   document.querySelectorAll('.sidebar-item').forEach(t=>{if(t.textContent.toLowerCase().includes(name.substring(0,5)))t.classList.add('active');});
-  const loaders={dashboard:cargarDashboard,carreras:cargarCarreras,materias:cargarMaterias,
+  const loaders={dashboard:cargarDashboard,gestiones:cargarGestiones,carreras:cargarCarreras,materias:cargarMaterias,
     estudiantes:cargarEstudiantes,inscripciones:cargarInscripciones,
-    asistencia:()=>{document.getElementById('a-fecha').value=new Date().toISOString().split('T')[0];},
+    asistencia:()=>{document.getElementById('a-fecha').value=document.getElementById('a-fecha').value||new Date().toISOString().split('T')[0];},
     trabajos:cargarTrabajos,calificaciones:()=>{},
-    estadisticas:()=>{},importar:cargarImportar,backup:cargarBackupStats};
+    estadisticas:()=>{},importar:cargarImportar,backup:cargarBackupStats,
+    cuenta:cargarCuenta,usuarios:cargarUsuarios};
   loaders[name]?.();
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────
 async function cargarDashboard(){
-  const d=await get('/estadisticas/dashboard');
+  const d=await get('/estadisticas/dashboard'+(_gestionActivaId?'?gestion_id='+_gestionActivaId:''));
   document.getElementById('dash-stats').innerHTML=`
     <div class="stat-card blue"><div class="num">${d.total_estudiantes}</div><div class="lbl">Estudiantes</div></div>
     <div class="stat-card teal"><div class="num">${d.total_materias}</div><div class="lbl">Materias</div></div>
     <div class="stat-card amber"><div class="num">${d.total_carreras}</div><div class="lbl">Carreras</div></div>
-    <div class="stat-card green"><div class="num">${d.total_inscripciones}</div><div class="lbl">Inscripciones</div></div>
-    <div class="stat-card blue"><div class="num">${d.total_trabajos}</div><div class="lbl">Trabajos</div></div>
+    <div class="stat-card green"><div class="num">${d.total_inscripciones}</div><div class="lbl">Inscripciones (gestión activa)</div></div>
+    <div class="stat-card blue"><div class="num">${d.total_trabajos}</div><div class="lbl">Trabajos (gestión activa)</div></div>
     <div class="stat-card teal"><div class="num">${d.total_calificaciones}</div><div class="lbl">Calificaciones</div></div>
-    <div class="stat-card amber"><div class="num">${d.total_asistencias}</div><div class="lbl">Asistencias</div></div>`;
+    <div class="stat-card amber"><div class="num">${d.total_asistencias}</div><div class="lbl">Asistencias (gestión activa)</div></div>`;
+}
+
+// ── GESTIONES ACADÉMICAS ──────────────────────────────────
+async function cargarGestiones(){
+  _gestiones=await get('/gestiones/');
+  document.getElementById('tabla-gestiones').innerHTML=_gestiones.length
+    ?_gestiones.map(g=>`<tr>
+        <td><span class="badge badge-blue">${g.codigo}</span></td>
+        <td>${g.nombre||'-'}</td>
+        <td>${g.fecha_inicio||'-'} → ${g.fecha_fin||'-'}</td>
+        <td>${g.activa?'<span class="badge badge-green">Activa</span>':''} ${g.cerrada?'<span class="badge badge-red">Cerrada</span>':''}</td>
+        <td class="flex">
+          ${!g.activa?`<button class="btn btn-outline btn-xs" onclick="activarGestion(${g.id})">✓ Usar como activa</button>`:''}
+          <button class="btn btn-warning btn-xs" onclick='editarGestion(${JSON.stringify(g)})'>✏ Editar</button>
+          <button class="btn btn-danger btn-xs" onclick="eliminarGestion(${g.id})">🗑</button>
+        </td></tr>`).join('')
+    :'<tr><td colspan="5" class="empty">Sin gestiones — crea la primera (ej: 1/2026)</td></tr>';
+  poblarSelects();
+}
+function abrirModalGestion(g=null){
+  document.getElementById('mg-id').value=g?.id||'';
+  document.getElementById('mg-titulo').textContent=g?'Editar Gestión':'Nueva Gestión';
+  document.getElementById('mg-codigo').value=g?.codigo||'';
+  document.getElementById('mg-nombre').value=g?.nombre||'';
+  document.getElementById('mg-inicio').value=g?.fecha_inicio||'';
+  document.getElementById('mg-fin').value=g?.fecha_fin||'';
+  abrirModal('modal-gestion');
+}
+function editarGestion(g){abrirModalGestion(g);}
+async function guardarGestion(){
+  const id=document.getElementById('mg-id').value;
+  const data={codigo:document.getElementById('mg-codigo').value,nombre:document.getElementById('mg-nombre').value||null,
+    fecha_inicio:document.getElementById('mg-inicio').value||null,fecha_fin:document.getElementById('mg-fin').value||null,
+    activa:false,cerrada:false};
+  const r=id?await put('/gestiones/'+id,data):await post('/gestiones/',data);
+  if(r){cerrarModal('modal-gestion');await cargarGestionesGlobal();cargarGestiones();}
+}
+async function activarGestion(id){
+  if(await post('/gestiones/'+id+'/activar',{})){
+    localStorage.setItem('ficam_gestion_activa', id);
+    await cargarGestionesGlobal();
+    cargarGestiones();
+  }
+}
+async function eliminarGestion(id){
+  if(!confirm('¿Eliminar esta gestión? Solo es posible si no tiene inscripciones, trabajos ni asistencias.'))return;
+  if(await del('/gestiones/'+id)){await cargarGestionesGlobal();cargarGestiones();}
+  else alert('No se pudo eliminar: probablemente tiene datos asociados.');
+}
+async function previewPromocion(){
+  const origen=document.getElementById('prom-origen').value;
+  const destino=document.getElementById('prom-destino').value;
+  if(!origen||!destino){alert('Selecciona gestión de origen y destino');return;}
+  if(origen===destino){alert('Origen y destino deben ser distintos');return;}
+  const data=await get(`/gestiones/${origen}/repitentes-preview?destino_id=${destino}`);
+  document.getElementById('prom-resultado').innerHTML=data.length
+    ?`<div class="table-wrap"><table><thead><tr><th>Estudiante</th><th>Código</th><th>Materia</th><th>¿Ya en destino?</th></tr></thead><tbody>
+      ${data.map(r=>`<tr><td>${r.estudiante}</td><td>${r.codigo}</td><td>${r.materia}</td><td>${r.ya_inscrito_en_destino?'✓ ya inscrito':'—'}</td></tr>`).join('')}
+      </tbody></table></div>`
+    :'<div class="empty">No hay reprobados marcados en la gestión de origen (revisa Inscripciones)</div>';
+}
+async function ejecutarPromocion(){
+  const origen=document.getElementById('prom-origen').value;
+  const destino=document.getElementById('prom-destino').value;
+  if(!origen||!destino){alert('Selecciona gestión de origen y destino');return;}
+  if(origen===destino){alert('Origen y destino deben ser distintos');return;}
+  if(!confirm('¿Trasladar todos los reprobados de origen a destino como repitentes?'))return;
+  const r=await post(`/gestiones/${origen}/promover/${destino}`,{});
+  if(r)document.getElementById('prom-resultado').innerHTML=
+    `<div class="stat-card green"><div class="num">${r.repitentes_trasladados}</div><div class="lbl">Repitentes trasladados de ${r.gestion_origen} a ${r.gestion_destino}</div></div>`+
+    (r.ya_existian_en_destino?`<p style="font-size:12px;color:var(--text2);margin-top:8px">${r.ya_existian_en_destino} ya estaban inscritos en destino y no se duplicaron.</p>`:'');
 }
 
 // ── CARRERAS ──────────────────────────────────────────────
@@ -616,10 +1006,11 @@ async function eliminarEst(id){
 // ── INSCRIPCIONES ─────────────────────────────────────────
 async function cargarInscripciones(){
   const mid=document.getElementById('filtro-materia-insc')?.value;
-  const sem=document.getElementById('filtro-sem-insc')?.value;
+  const estado=document.getElementById('filtro-estado-insc')?.value;
   let url='/inscripciones/?';
+  if(_gestionActivaId)url+='gestion_id='+_gestionActivaId+'&';
   if(mid)url+='materia_id='+mid+'&';
-  if(sem)url+='semestre='+sem;
+  if(estado)url+='estado='+estado;
   const data=await get(url);
   // Ordenar alfabéticamente por apellido luego nombre
   data.sort((a,b)=>{
@@ -632,17 +1023,32 @@ async function cargarInscripciones(){
     ?data.map(i=>`<tr>
         <td>${i.estudiante?.apellido||''}, ${i.estudiante?.nombre||''} <span class="badge badge-blue">${i.estudiante?.codigo||''}</span></td>
         <td>${i.materia?.nombre||'-'}</td>
-        <td>${i.semestre}</td>
-        <td><span class="badge ${i.activa?'badge-green':'badge-red'}">${i.activa?'Activa':'Baja'}</span></td>
+        <td>
+          <select onchange="cambiarEstadoInsc(${i.id},this.value)" style="width:auto;padding:4px 6px">
+            <option value="cursando" ${i.estado==='cursando'?'selected':''}>Cursando</option>
+            <option value="aprobado" ${i.estado==='aprobado'?'selected':''}>Aprobado</option>
+            <option value="reprobado" ${i.estado==='reprobado'?'selected':''}>Reprobado</option>
+            <option value="retirado" ${i.estado==='retirado'?'selected':''}>Retirado</option>
+          </select>
+        </td>
+        <td>${i.repitente?'<span class="badge badge-amber">Repitente</span>':'-'}</td>
         <td><button class="btn btn-danger btn-xs" onclick="darBajaInsc(${i.id})">Dar baja</button></td>
       </tr>`).join('')
-    :'<tr><td colspan="5" class="empty">Sin inscripciones</td></tr>';
+    :'<tr><td colspan="5" class="empty">Sin inscripciones en esta gestión</td></tr>';
+}
+async function cambiarEstadoInsc(id,estado){
+  await put('/inscripciones/'+id,{estado});
 }
 
-function abrirModalInscripcion(){abrirModal('modal-inscripcion');}
+function abrirModalInscripcion(){
+  if(document.getElementById('mi-gestion'))document.getElementById('mi-gestion').value=_gestionActivaId||'';
+  abrirModal('modal-inscripcion');
+}
 async function guardarInscripcion(){
   const r=await post('/inscripciones/',{estudiante_id:+document.getElementById('mi-est').value,
-    materia_id:+document.getElementById('mi-mat').value,semestre:document.getElementById('mi-semestre').value});
+    materia_id:+document.getElementById('mi-mat').value,
+    gestion_id:+document.getElementById('mi-gestion').value,
+    repitente:document.getElementById('mi-repitente').value==='true'});
   if(r){cerrarModal('modal-inscripcion');cargarInscripciones();}
 }
 async function darBajaInsc(id){
@@ -656,14 +1062,15 @@ async function cargarListaAsistencia(){
   const mid=document.getElementById('a-materia').value;
   const fecha=document.getElementById('a-fecha').value;
   if(!mid||!fecha)return;
+  if(!_gestionActivaId){alert('Selecciona una gestión activa en la barra superior');return;}
   const mat=_materias.find(m=>m.id==mid);
-  document.getElementById('asist-titulo').textContent=`${mat?.nombre||''} — ${fecha}`;
-  const inscritos=await get('/inscripciones/?materia_id='+mid);
-  const ya=await get('/asistencia/?materia_id='+mid+'&fecha='+fecha);
+  document.getElementById('asist-titulo').textContent=`${mat?.nombre||''} — ${fecha} — Gestión ${_gestiones.find(g=>g.id==_gestionActivaId)?.codigo||''}`;
+  const inscritos=await get('/inscripciones/?materia_id='+mid+'&gestion_id='+_gestionActivaId);
+  const ya=await get('/asistencia/?materia_id='+mid+'&gestion_id='+_gestionActivaId+'&fecha='+fecha);
   const yaMap={};ya.forEach(a=>yaMap[a.estudiante_id]=a.presente);
   asistenciaActual={};
   const grid=document.getElementById('grid-asistencia');
-  if(!inscritos.length){grid.innerHTML='<div class="empty">Sin estudiantes inscritos</div>';return;}
+  if(!inscritos.length){grid.innerHTML='<div class="empty">Sin estudiantes inscritos en esta gestión</div>';return;}
   // Ordenar alfabéticamente por apellido luego nombre
   inscritos.sort((a,b)=>{
     const apellA=(a.estudiante?.apellido||'').toLowerCase();
@@ -675,7 +1082,7 @@ async function cargarListaAsistencia(){
     const presente=yaMap[i.estudiante_id]!==undefined?yaMap[i.estudiante_id]:true;
     asistenciaActual[i.estudiante_id]=presente;
     return `<div class="asist-row">
-      <div class="asist-name">${i.estudiante?.apellido||''}, ${i.estudiante?.nombre||''}</div>
+      <div class="asist-name">${i.estudiante?.apellido||''}, ${i.estudiante?.nombre||''} ${i.repitente?'<span class="badge badge-amber">Rep.</span>':''}</div>
       <div class="toggle">
         <button id="p-${i.estudiante_id}" class="${presente?'presente':''}" onclick="toggleAsist(${i.estudiante_id},true)">✓ Presente</button>
         <button id="au-${i.estudiante_id}" class="${!presente?'ausente':''}" onclick="toggleAsist(${i.estudiante_id},false)">✗ Ausente</button>
@@ -699,13 +1106,13 @@ async function guardarAsistencia(){
   const mid=+document.getElementById('a-materia').value;
   const fecha=document.getElementById('a-fecha').value;
   const registros=Object.entries(asistenciaActual).map(([eid,presente])=>({estudiante_id:+eid,presente}));
-  const r=await post('/asistencia/masiva',{materia_id:mid,fecha,registros});
+  const r=await post('/asistencia/masiva',{materia_id:mid,gestion_id:_gestionActivaId,fecha,registros});
   if(r)alert(`✅ ${r.registrados} registros guardados`);
 }
 async function cargarResumenAsistencia(){
   const mid=document.getElementById('a-mat-resumen').value;
   if(!mid)return;
-  const data=await get('/asistencia/resumen/'+mid);
+  const data=await get(`/asistencia/resumen/${mid}${_gestionActivaId?'?gestion_id='+_gestionActivaId:''}`);
   // Ordenar por apellido (el campo nombre viene como "Nombre Apellido" del backend)
   data.sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
   document.getElementById('tabla-asistencia').innerHTML=data.length
@@ -716,7 +1123,10 @@ async function cargarResumenAsistencia(){
 // ── TRABAJOS ──────────────────────────────────────────────
 async function cargarTrabajos(){
   const mid=document.getElementById('filtro-mat-trab')?.value;
-  const data=await get('/trabajos/'+(mid?'?materia_id='+mid:''));
+  let url='/trabajos/?';
+  if(_gestionActivaId)url+='gestion_id='+_gestionActivaId+'&';
+  if(mid)url+='materia_id='+mid;
+  const data=await get(url);
   document.getElementById('tabla-trabajos').innerHTML=data.length
     ?data.map(t=>`<tr>
         <td>${t.titulo}</td><td>${t.materia?.nombre||'-'}</td><td>${badge(t.tipo)}</td>
@@ -725,13 +1135,14 @@ async function cargarTrabajos(){
           <button class="btn btn-warning btn-xs" onclick='editarTrabajo(${JSON.stringify(t)})'>✏ Editar</button>
           <button class="btn btn-danger btn-xs" onclick="eliminarTrabajo(${t.id})">🗑</button>
         </td></tr>`).join('')
-    :'<tr><td colspan="6" class="empty">Sin trabajos</td></tr>';
+    :'<tr><td colspan="6" class="empty">Sin trabajos en esta gestión</td></tr>';
 }
 function abrirModalTrabajo(t=null){
   document.getElementById('mt-id').value=t?.id||'';
   document.getElementById('mt-titulo').textContent=t?'Editar Trabajo':'Nuevo Trabajo';
   document.getElementById('mt-titulo-inp').value=t?.titulo||'';
   document.getElementById('mt-materia').value=t?.materia_id||'';
+  document.getElementById('mt-gestion').value=t?.gestion_id||_gestionActivaId||'';
   document.getElementById('mt-tipo').value=t?.tipo||'tarea';
   document.getElementById('mt-fecha').value=t?.fecha_entrega||'';
   document.getElementById('mt-puntaje').value=t?.puntaje_maximo||100;
@@ -742,6 +1153,7 @@ function editarTrabajo(t){abrirModalTrabajo(t);}
 async function guardarTrabajo(){
   const id=document.getElementById('mt-id').value;
   const data={titulo:document.getElementById('mt-titulo-inp').value,materia_id:+document.getElementById('mt-materia').value,
+    gestion_id:+document.getElementById('mt-gestion').value,
     tipo:document.getElementById('mt-tipo').value,fecha_entrega:document.getElementById('mt-fecha').value,
     puntaje_maximo:+document.getElementById('mt-puntaje').value,descripcion:document.getElementById('mt-desc').value};
   const r=id?await put('/trabajos/'+id,data):await post('/trabajos/',data);
@@ -757,7 +1169,7 @@ let califActual={};
 async function cargarTrabajosCalif(){
   const mid=document.getElementById('cal-materia').value;
   if(!mid)return;
-  const data=await get('/trabajos/?materia_id='+mid);
+  const data=await get('/trabajos/?materia_id='+mid+(_gestionActivaId?'&gestion_id='+_gestionActivaId:''));
   document.getElementById('cal-trabajo').innerHTML='<option value="">Seleccione trabajo...</option>'+
     data.map(t=>`<option value="${t.id}">${t.titulo} (${t.tipo})</option>`).join('');
 }
@@ -766,7 +1178,7 @@ async function cargarListaCalif(){
   if(!tid)return;
   const mid=document.getElementById('cal-materia').value;
   const trab=await get('/trabajos/'+tid).catch(()=>null);
-  const inscritos=await get('/inscripciones/?materia_id='+mid);
+  const inscritos=await get('/inscripciones/?materia_id='+mid+(_gestionActivaId?'&gestion_id='+_gestionActivaId:''));
   const yaCalif=await get('/calificaciones/?trabajo_id='+tid);
   const yaMap={};yaCalif.forEach(c=>yaMap[c.estudiante_id]=c.puntaje);
   califActual={};
@@ -794,7 +1206,7 @@ async function guardarCalificaciones(){
 async function cargarStatMateria(){
   const mid=document.getElementById('stat-materia').value;
   if(!mid)return;
-  const d=await get('/estadisticas/materia/'+mid);
+  const d=await get(`/estadisticas/materia/${mid}${_gestionActivaId?'?gestion_id='+_gestionActivaId:''}`);
   const ts=d.trabajos_detalle||[];
   document.getElementById('stat-mat-result').innerHTML=`
     <div class="panel">
@@ -812,14 +1224,14 @@ async function cargarStatMateria(){
 async function cargarStatEst(){
   const eid=document.getElementById('stat-est').value;
   if(!eid)return;
-  const d=await get('/estadisticas/estudiante/'+eid);
+  const d=await get(`/estadisticas/estudiante/${eid}${_gestionActivaId?'?gestion_id='+_gestionActivaId:''}`);
   document.getElementById('stat-est-result').innerHTML=`
     <div class="panel">
       <div class="panel-title">${d.estudiante} <span class="badge badge-blue">${d.codigo}</span></div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:8px">${d.carrera||''}</div>
-      ${d.materias.length?`<div class="table-wrap"><table><thead><tr><th>Materia</th><th>Asistencia</th><th>Promedio</th></tr></thead><tbody>
-        ${d.materias.map(m=>`<tr><td>${m.materia}</td><td>${pct(m.asistencia_pct)}</td><td>${m.promedio?`<strong>${m.promedio}</strong>/100`:'—'}</td></tr>`).join('')}
-      </tbody></table></div>`:'<div class="empty">Sin materias</div>'}
+      ${d.materias.length?`<div class="table-wrap"><table><thead><tr><th>Materia</th><th>Estado</th><th>Asistencia</th><th>Promedio</th></tr></thead><tbody>
+        ${d.materias.map(m=>`<tr><td>${m.materia} ${m.repitente?'<span class="badge badge-amber">Rep.</span>':''}</td><td>${badgeEstado(m.estado)}</td><td>${pct(m.asistencia_pct)}</td><td>${m.promedio?`<strong>${m.promedio}</strong>/100`:'—'}</td></tr>`).join('')}
+      </tbody></table></div>`:'<div class="empty">Sin materias en esta gestión</div>'}
     </div>`;
 }
 
@@ -836,7 +1248,8 @@ async function subirCSV(){
   const fd=new FormData();fd.append('file',fi.files[0]);
   const btn=event.target;btn.textContent='⏳ Importando...';btn.disabled=true;
   try{
-    const r=await fetch('/api/importar/estudiantes',{method:'POST',body:fd});
+    const url='/api/importar/estudiantes'+(_gestionActivaId?'?gestion_id='+_gestionActivaId:'');
+    const r=await fetch(url,{method:'POST',body:fd,headers:authHeaders()});
     const data=await r.json();
     document.getElementById('imp-resultado').classList.remove('hidden');
     const errs=data.errores?.length?`<div style="margin-top:12px"><div style="font-size:12px;font-weight:600;color:var(--red2);margin-bottom:6px">Errores (${data.errores.length})</div>
@@ -859,17 +1272,44 @@ async function subirCSV(){
 async function cargarBackupStats(){
   const d=await get('/backup/estadisticas');
   document.getElementById('backup-stats').innerHTML=`
+    <div class="stat-card amber"><div class="num">${d.gestiones}</div><div class="lbl">Gestiones</div></div>
     <div class="stat-card blue"><div class="num">${d.estudiantes}</div><div class="lbl">Estudiantes</div></div>
     <div class="stat-card teal"><div class="num">${d.materias}</div><div class="lbl">Materias</div></div>
     <div class="stat-card amber"><div class="num">${d.carreras}</div><div class="lbl">Carreras</div></div>
     <div class="stat-card green"><div class="num">${d.inscripciones}</div><div class="lbl">Inscripciones</div></div>
     <div class="stat-card blue"><div class="num">${d.asistencias}</div><div class="lbl">Asistencias</div></div>
     <div class="stat-card teal"><div class="num">${d.calificaciones}</div><div class="lbl">Calificaciones</div></div>`;
+  const sel=document.getElementById('backup-gestion-sel');
+  if(sel)sel.innerHTML=_gestiones.map(g=>`<option value="${g.id}">${g.codigo}</option>`).join('');
+}
+function descargarBackupGestion(){
+  const gid=document.getElementById('backup-gestion-sel').value;
+  if(!gid){alert('Selecciona una gestión');return;}
+  const cod=_gestiones.find(g=>g.id==gid)?.codigo||gid;
+  descargarAutenticado('/api/backup/json?gestion_id='+gid,`ficam_backup_gestion_${cod}.json`);
+}
+async function restaurarBackup(){
+  const fi=document.getElementById('restore-file');
+  if(!fi.files.length){alert('Selecciona el archivo de backup JSON');return;}
+  if(!confirm('⚠️ Esto BORRARÁ todos los datos actuales y los reemplazará por los del backup. ¿Continuar?'))return;
+  if(!confirm('Confirma una vez más: esta acción no se puede deshacer. ¿Restaurar de todas formas?'))return;
+  const fd=new FormData();fd.append('file',fi.files[0]);
+  const btn=event.target;btn.textContent='⏳ Restaurando...';btn.disabled=true;
+  try{
+    const r=await fetch('/api/backup/restore?confirmar=true',{method:'POST',body:fd,headers:authHeaders()});
+    const data=await r.json();
+    if(!r.ok){alert('Error: '+(data.detail||'no se pudo restaurar'));return;}
+    document.getElementById('restore-resultado').innerHTML=
+      `<div style="color:var(--green2);font-size:13px">✅ Restaurado: ${Object.entries(data.restaurado).map(([k,v])=>`${k}: ${v}`).join(', ')}</div>`;
+    await inicializar();
+    cargarBackupStats();
+  }catch(e){alert('Error: '+e.message);}
+  finally{btn.textContent='♻ Restaurar sistema completo';btn.disabled=false;}
 }
 
 // ── INICIO ────────────────────────────────────────────────
 document.getElementById('a-fecha').value=new Date().toISOString().split('T')[0];
-inicializar().then(()=>cargarDashboard());
+arrancar();
 </script>
 </body>
 </html>
