@@ -12,10 +12,11 @@ from datetime import date
 router_asistencia = APIRouter(prefix="/asistencia", tags=["Asistencia"])
 
 @router_asistencia.get("/", response_model=List[AsistenciaOut])
-def listar_asistencia(materia_id: int = None, estudiante_id: int = None,
+def listar_asistencia(materia_id: int = None, gestion_id: int = None, estudiante_id: int = None,
                        fecha: date = None, db: Session = Depends(get_db)):
     q = db.query(Asistencia)
     if materia_id: q = q.filter(Asistencia.materia_id == materia_id)
+    if gestion_id: q = q.filter(Asistencia.gestion_id == gestion_id)
     if estudiante_id: q = q.filter(Asistencia.estudiante_id == estudiante_id)
     if fecha: q = q.filter(Asistencia.fecha == fecha)
     return q.order_by(Asistencia.fecha.desc()).all()
@@ -25,6 +26,7 @@ def registrar_asistencia(data: AsistenciaCreate, db: Session = Depends(get_db)):
     existe = db.query(Asistencia).filter(
         Asistencia.estudiante_id == data.estudiante_id,
         Asistencia.materia_id == data.materia_id,
+        Asistencia.gestion_id == data.gestion_id,
         Asistencia.fecha == data.fecha
     ).first()
     if existe:
@@ -40,6 +42,7 @@ def asistencia_masiva(data: AsistenciaMasiva, db: Session = Depends(get_db)):
         existe = db.query(Asistencia).filter(
             Asistencia.estudiante_id == r["estudiante_id"],
             Asistencia.materia_id == data.materia_id,
+            Asistencia.gestion_id == data.gestion_id,
             Asistencia.fecha == data.fecha
         ).first()
         if existe:
@@ -49,6 +52,7 @@ def asistencia_masiva(data: AsistenciaMasiva, db: Session = Depends(get_db)):
             a = Asistencia(
                 estudiante_id=r["estudiante_id"],
                 materia_id=data.materia_id,
+                gestion_id=data.gestion_id,
                 fecha=data.fecha,
                 presente=r.get("presente", True),
                 observacion=r.get("observacion")
@@ -59,7 +63,7 @@ def asistencia_masiva(data: AsistenciaMasiva, db: Session = Depends(get_db)):
     return {"registrados": registrados}
 
 @router_asistencia.get("/resumen/{materia_id}")
-def resumen_asistencia(materia_id: int, semestre: str = None, db: Session = Depends(get_db)):
+def resumen_asistencia(materia_id: int, gestion_id: int = None, db: Session = Depends(get_db)):
     from sqlalchemy import Integer as SAInteger
     q = db.query(
         Estudiante.id,
@@ -69,8 +73,9 @@ def resumen_asistencia(materia_id: int, semestre: str = None, db: Session = Depe
         func.count(Asistencia.id).label("total"),
         func.sum(func.cast(Asistencia.presente, SAInteger)).label("presentes")
     ).join(Asistencia, Asistencia.estudiante_id == Estudiante.id)\
-     .filter(Asistencia.materia_id == materia_id)\
-     .group_by(Estudiante.id, Estudiante.nombre, Estudiante.apellido, Estudiante.codigo)
+     .filter(Asistencia.materia_id == materia_id)
+    if gestion_id: q = q.filter(Asistencia.gestion_id == gestion_id)
+    q = q.group_by(Estudiante.id, Estudiante.nombre, Estudiante.apellido, Estudiante.codigo)
 
     resultados = []
     for row in q.all():
@@ -92,9 +97,10 @@ def resumen_asistencia(materia_id: int, semestre: str = None, db: Session = Depe
 router_trabajos = APIRouter(prefix="/trabajos", tags=["Trabajos"])
 
 @router_trabajos.get("/", response_model=List[TrabajoOut])
-def listar_trabajos(materia_id: int = None, db: Session = Depends(get_db)):
+def listar_trabajos(materia_id: int = None, gestion_id: int = None, db: Session = Depends(get_db)):
     q = db.query(Trabajo)
     if materia_id: q = q.filter(Trabajo.materia_id == materia_id)
+    if gestion_id: q = q.filter(Trabajo.gestion_id == gestion_id)
     return q.order_by(Trabajo.fecha_entrega.desc()).all()
 
 @router_trabajos.post("/", response_model=TrabajoOut)
@@ -162,13 +168,17 @@ def calificaciones_masivas(trabajo_id: int, calificaciones: List[dict], db: Sess
 router_estadisticas = APIRouter(prefix="/estadisticas", tags=["Estadísticas"])
 
 @router_estadisticas.get("/materia/{materia_id}")
-def stats_materia(materia_id: int, db: Session = Depends(get_db)):
+def stats_materia(materia_id: int, gestion_id: int = None, db: Session = Depends(get_db)):
     materia = db.query(Materia).filter(Materia.id == materia_id).first()
     if not materia: raise HTTPException(404, "Materia no encontrada")
 
-    inscritos = db.query(Inscripcion).filter(
-        Inscripcion.materia_id == materia_id, Inscripcion.activa == True).count()
-    trabajos = db.query(Trabajo).filter(Trabajo.materia_id == materia_id).all()
+    q_insc = db.query(Inscripcion).filter(Inscripcion.materia_id == materia_id, Inscripcion.activa == True)
+    if gestion_id: q_insc = q_insc.filter(Inscripcion.gestion_id == gestion_id)
+    inscritos = q_insc.count()
+
+    q_trab = db.query(Trabajo).filter(Trabajo.materia_id == materia_id)
+    if gestion_id: q_trab = q_trab.filter(Trabajo.gestion_id == gestion_id)
+    trabajos = q_trab.all()
     total_trabajos = len(trabajos)
 
     # Promedio general de calificaciones
@@ -181,9 +191,10 @@ def stats_materia(materia_id: int, db: Session = Depends(get_db)):
                               "entregados": len(cals), "total_inscritos": inscritos})
 
     # Asistencia general
-    total_reg = db.query(Asistencia).filter(Asistencia.materia_id == materia_id).count()
-    presentes = db.query(Asistencia).filter(
-        Asistencia.materia_id == materia_id, Asistencia.presente == True).count()
+    q_asis = db.query(Asistencia).filter(Asistencia.materia_id == materia_id)
+    if gestion_id: q_asis = q_asis.filter(Asistencia.gestion_id == gestion_id)
+    total_reg = q_asis.count()
+    presentes = q_asis.filter(Asistencia.presente == True).count()
 
     return {
         "materia": materia.nombre,
@@ -196,31 +207,34 @@ def stats_materia(materia_id: int, db: Session = Depends(get_db)):
     }
 
 @router_estadisticas.get("/estudiante/{estudiante_id}")
-def stats_estudiante(estudiante_id: int, db: Session = Depends(get_db)):
+def stats_estudiante(estudiante_id: int, gestion_id: int = None, db: Session = Depends(get_db)):
     est = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
     if not est: raise HTTPException(404, "Estudiante no encontrado")
 
-    inscripciones = db.query(Inscripcion).filter(
-        Inscripcion.estudiante_id == estudiante_id, Inscripcion.activa == True).all()
+    q_insc = db.query(Inscripcion).filter(Inscripcion.estudiante_id == estudiante_id, Inscripcion.activa == True)
+    if gestion_id: q_insc = q_insc.filter(Inscripcion.gestion_id == gestion_id)
+    inscripciones = q_insc.all()
 
     resumen = []
     for insc in inscripciones:
         total_cls = db.query(Asistencia).filter(
-            Asistencia.materia_id == insc.materia_id,
+            Asistencia.materia_id == insc.materia_id, Asistencia.gestion_id == insc.gestion_id,
             Asistencia.estudiante_id == estudiante_id).count()
         presentes = db.query(Asistencia).filter(
-            Asistencia.materia_id == insc.materia_id,
+            Asistencia.materia_id == insc.materia_id, Asistencia.gestion_id == insc.gestion_id,
             Asistencia.estudiante_id == estudiante_id,
             Asistencia.presente == True).count()
         cals = db.query(Calificacion).join(Trabajo).filter(
-            Trabajo.materia_id == insc.materia_id,
+            Trabajo.materia_id == insc.materia_id, Trabajo.gestion_id == insc.gestion_id,
             Calificacion.estudiante_id == estudiante_id).all()
         promedio = round(sum(c.puntaje for c in cals) / len(cals), 1) if cals else 0
 
         resumen.append({
             "materia_id": insc.materia_id,
             "materia": insc.materia.nombre if insc.materia else "",
-            "semestre": insc.semestre,
+            "gestion": insc.gestion.codigo if insc.gestion else insc.semestre,
+            "estado": insc.estado,
+            "repitente": insc.repitente,
             "asistencia_pct": round((presentes / total_cls * 100) if total_cls > 0 else 0, 1),
             "trabajos_calificados": len(cals),
             "promedio": promedio
@@ -229,19 +243,26 @@ def stats_estudiante(estudiante_id: int, db: Session = Depends(get_db)):
     return {
         "estudiante": f"{est.nombre} {est.apellido}",
         "codigo": est.codigo,
-        "carrera": est.carrera.nombre if est.carrera else "",
+        "carrera": ", ".join(c.nombre for c in est.carreras) if est.carreras else "",
         "materias": resumen
     }
 
 @router_estadisticas.get("/dashboard")
-def dashboard(db: Session = Depends(get_db)):
+def dashboard(gestion_id: int = None, db: Session = Depends(get_db)):
     from app.models import Carrera
+    q_insc = db.query(Inscripcion).filter(Inscripcion.activa == True)
+    q_trab = db.query(Trabajo)
+    q_asis = db.query(Asistencia)
+    if gestion_id:
+        q_insc = q_insc.filter(Inscripcion.gestion_id == gestion_id)
+        q_trab = q_trab.filter(Trabajo.gestion_id == gestion_id)
+        q_asis = q_asis.filter(Asistencia.gestion_id == gestion_id)
     return {
         "total_estudiantes": db.query(Estudiante).filter(Estudiante.activo == True).count(),
         "total_materias": db.query(Materia).count(),
         "total_carreras": db.query(Carrera).count(),
-        "total_inscripciones": db.query(Inscripcion).filter(Inscripcion.activa == True).count(),
-        "total_trabajos": db.query(Trabajo).count(),
+        "total_inscripciones": q_insc.count(),
+        "total_trabajos": q_trab.count(),
         "total_calificaciones": db.query(Calificacion).count(),
-        "total_asistencias": db.query(Asistencia).count(),
+        "total_asistencias": q_asis.count(),
     }

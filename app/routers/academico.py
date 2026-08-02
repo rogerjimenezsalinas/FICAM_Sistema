@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Carrera, Materia, Estudiante, Inscripcion, estudiante_carrera
 from app.schemas import (CarreraCreate, CarreraOut, MateriaCreate, MateriaOut,
-                          EstudianteCreate, EstudianteOut, InscripcionCreate, InscripcionOut)
+                          EstudianteCreate, EstudianteOut, InscripcionCreate, InscripcionOut,
+                          InscripcionUpdate)
 from typing import List
 
 # ── CARRERAS ──────────────────────────────────────────────
@@ -101,27 +102,43 @@ def eliminar_estudiante(id: int, db: Session = Depends(get_db)):
 router_inscripciones = APIRouter(prefix="/inscripciones", tags=["Inscripciones"])
 
 @router_inscripciones.get("/", response_model=List[InscripcionOut])
-def listar_inscripciones(materia_id: int = None, semestre: str = None, estudiante_id: int = None, db: Session = Depends(get_db)):
+def listar_inscripciones(materia_id: int = None, gestion_id: int = None, semestre: str = None,
+                          estudiante_id: int = None, estado: str = None, db: Session = Depends(get_db)):
     q = db.query(Inscripcion).filter(Inscripcion.activa == True)
     if materia_id: q = q.filter(Inscripcion.materia_id == materia_id)
-    if semestre: q = q.filter(Inscripcion.semestre == semestre)
+    if gestion_id: q = q.filter(Inscripcion.gestion_id == gestion_id)
+    if semestre: q = q.filter(Inscripcion.semestre == semestre)  # compat: filtrar por texto histórico
     if estudiante_id: q = q.filter(Inscripcion.estudiante_id == estudiante_id)
+    if estado: q = q.filter(Inscripcion.estado == estado)
     return q.all()
 
 @router_inscripciones.post("/", response_model=InscripcionOut)
 def inscribir(data: InscripcionCreate, db: Session = Depends(get_db)):
+    from app.models import Gestion
     existe = db.query(Inscripcion).filter(
         Inscripcion.estudiante_id == data.estudiante_id,
         Inscripcion.materia_id == data.materia_id,
-        Inscripcion.semestre == data.semestre
+        Inscripcion.gestion_id == data.gestion_id
     ).first()
-    if existe: raise HTTPException(400, "Estudiante ya inscrito en esta materia y semestre")
-    i = Inscripcion(**data.model_dump())
+    if existe: raise HTTPException(400, "Estudiante ya inscrito en esta materia para esta gestión")
+    gestion = db.query(Gestion).filter(Gestion.id == data.gestion_id).first()
+    if not gestion: raise HTTPException(400, "Gestión no válida")
+    i = Inscripcion(**data.model_dump(), semestre=gestion.codigo)
     db.add(i); db.commit(); db.refresh(i); return i
+
+@router_inscripciones.put("/{id}", response_model=InscripcionOut)
+def actualizar_inscripcion(id: int, data: InscripcionUpdate, db: Session = Depends(get_db)):
+    """Cambiar estado (cursando/aprobado/reprobado/retirado), marcar repitente, o registrar nota final."""
+    i = db.query(Inscripcion).filter(Inscripcion.id == id).first()
+    if not i: raise HTTPException(404, "Inscripción no encontrada")
+    for k, v in data.model_dump(exclude_unset=True).items(): setattr(i, k, v)
+    db.commit(); db.refresh(i); return i
 
 @router_inscripciones.delete("/{id}")
 def dar_baja(id: int, db: Session = Depends(get_db)):
     i = db.query(Inscripcion).filter(Inscripcion.id == id).first()
     if not i: raise HTTPException(404, "Inscripción no encontrada")
-    i.activa = False; db.commit()
+    i.activa = False
+    i.estado = "retirado"
+    db.commit()
     return {"ok": True}

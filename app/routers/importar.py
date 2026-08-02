@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import Estudiante, Carrera, Materia, Inscripcion
+from app.models import Estudiante, Carrera, Materia, Inscripcion, Gestion
 import csv, io, re
 
 router_importar = APIRouter(prefix="/importar", tags=["Importación"])
@@ -12,9 +12,19 @@ def limpiar_nombre(texto):
     return re.sub(r'\s*-?\d{6,}', '', texto).strip()
 
 @router_importar.post("/estudiantes")
-async def importar_estudiantes(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def importar_estudiantes(file: UploadFile = File(...), gestion_id: int = None, db: Session = Depends(get_db)):
     if not file.filename.endswith(".csv"):
         raise HTTPException(400, "Solo se aceptan archivos .csv")
+
+    # Gestión por defecto: la indicada en la URL, o la marcada como activa
+    gestion_default = None
+    if gestion_id:
+        gestion_default = db.query(Gestion).filter(Gestion.id == gestion_id).first()
+        if not gestion_default:
+            raise HTTPException(400, "La gestión indicada no existe")
+    else:
+        gestion_default = db.query(Gestion).filter(Gestion.activa == True).first()
+
     contenido = await file.read()
     # Intentar UTF-8 con BOM, luego latin-1
     try:
@@ -75,20 +85,36 @@ async def importar_estudiantes(file: UploadFile = File(...), db: Session = Depen
                 db.flush()
                 resultados["creados"] += 1
 
-            # Inscripción opcional
+            # Inscripción opcional (a una materia, dentro de una gestión académica)
             mat_cod = row.get("materia_codigo","").strip()
-            sem_insc = row.get("semestre_inscripcion","").strip()
-            if mat_cod and sem_insc:
+            gestion_cod = row.get("gestion_codigo","").strip() or row.get("semestre_inscripcion","").strip()
+            if mat_cod and (gestion_cod or gestion_default):
                 materia = db.query(Materia).filter(Materia.codigo == mat_cod.upper()).first()
                 if not materia: raise ValueError(f"Materia '{mat_cod}' no existe")
+
+                gestion = None
+                if gestion_cod:
+                    gestion = db.query(Gestion).filter(Gestion.codigo == gestion_cod).first()
+                    if not gestion: raise ValueError(f"Gestión '{gestion_cod}' no existe (créala primero en Gestiones)")
+                else:
+                    gestion = gestion_default
+
+                repitente = row.get("repitente","").strip().lower() in ("si","sí","true","1","x")
+                estado = row.get("estado","").strip().lower() or "cursando"
+                if estado not in ("cursando","aprobado","reprobado","retirado"):
+                    estado = "cursando"
+
                 existe = db.query(Inscripcion).filter(
                     Inscripcion.estudiante_id == est.id,
                     Inscripcion.materia_id == materia.id,
-                    Inscripcion.semestre == sem_insc
+                    Inscripcion.gestion_id == gestion.id
                 ).first()
                 if not existe:
-                    db.add(Inscripcion(estudiante_id=est.id, materia_id=materia.id, semestre=sem_insc))
+                    db.add(Inscripcion(estudiante_id=est.id, materia_id=materia.id, gestion_id=gestion.id,
+                                        semestre=gestion.codigo, estado=estado, repitente=repitente))
                     resultados["inscritos"] += 1
+                else:
+                    existe.repitente = repitente or existe.repitente
 
             db.commit()  # commit por fila para evitar rollback total
 
@@ -102,11 +128,11 @@ async def importar_estudiantes(file: UploadFile = File(...), db: Session = Depen
 @router_importar.get("/plantilla")
 def descargar_plantilla():
     plantilla = (
-        "nombre,apellido,codigo,semestre_actual,carrera_codigo,celular,carnet,correo_electronico,materia_codigo,semestre_inscripcion\n"
-        "Ana,Mamani,20240001,1,IM,70012345,9876543,ana.mamani@gmail.com,AL101,2024-I\n"
-        "Luis,Quispe,20240002,3,IMT,70098765,1234567,luis.quispe@gmail.com,ED101,2024-I\n"
-        "Maria,Flores,20240003,5,IB,,,maria@gmail.com,BM201,2024-I\n"
-        "Pedro,Ticona,20240004,2,\"IM,IB\",,,,\n"
+        "nombre,apellido,codigo,semestre_actual,carrera_codigo,celular,carnet,correo_electronico,materia_codigo,gestion_codigo,repitente,estado\n"
+        "Ana,Mamani,20240001,1,IM,70012345,9876543,ana.mamani@gmail.com,AL101,1/2026,no,cursando\n"
+        "Luis,Quispe,20240002,3,IMT,70098765,1234567,luis.quispe@gmail.com,ED101,1/2026,si,cursando\n"
+        "Maria,Flores,20240003,5,IB,,,maria@gmail.com,BM201,1/2026,no,cursando\n"
+        "Pedro,Ticona,20240004,2,\"IM,IB\",,,,,,,\n"
     )
     return Response(content=plantilla, media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=plantilla_estudiantes.csv"})
