@@ -12,6 +12,48 @@ class CarreraOut(CarreraBase):
     id: int
     class Config: from_attributes = True
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class UsuarioBase(BaseModel):
+    nombre_completo: Optional[str] = None
+    rol: str = "docente"
+    activo: bool = True
+
+class UsuarioCreate(UsuarioBase):
+    username: str
+    password: str
+
+class UsuarioUpdate(UsuarioBase): pass
+
+class UsuarioOut(UsuarioBase):
+    id: int
+    username: str
+    class Config: from_attributes = True
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    usuario: UsuarioOut
+
+class CambiarClave(BaseModel):
+    password_actual: Optional[str] = None
+    password_nueva: str
+
+class GestionBase(BaseModel):
+    codigo: str
+    nombre: Optional[str] = None
+    fecha_inicio: Optional[date] = None
+    fecha_fin: Optional[date] = None
+    activa: bool = False
+    cerrada: bool = False
+
+class GestionCreate(GestionBase): pass
+class GestionOut(GestionBase):
+    id: int
+    class Config: from_attributes = True
+
 class MateriaBase(BaseModel):
     nombre: str
     codigo: str
@@ -47,21 +89,35 @@ class EstudianteOut(EstudianteBase):
 class InscripcionCreate(BaseModel):
     estudiante_id: int
     materia_id: int
-    semestre: str
+    gestion_id: int
+    estado: str = "cursando"
+    repitente: bool = False
+
+class InscripcionUpdate(BaseModel):
+    estado: Optional[str] = None
+    repitente: Optional[bool] = None
+    nota_final: Optional[float] = None
+    activa: Optional[bool] = None
 
 class InscripcionOut(BaseModel):
     id: int
     estudiante_id: int
     materia_id: int
-    semestre: str
+    gestion_id: int
+    semestre: Optional[str] = None
     activa: bool
+    estado: str
+    repitente: bool
+    nota_final: Optional[float] = None
     estudiante: Optional[EstudianteOut] = None
     materia: Optional[MateriaOut] = None
+    gestion: Optional[GestionOut] = None
     class Config: from_attributes = True
 
 class AsistenciaCreate(BaseModel):
     estudiante_id: int
     materia_id: int
+    gestion_id: int
     fecha: date
     presente: bool = True
     observacion: Optional[str] = None
@@ -74,6 +130,7 @@ class TrabajoCreate(BaseModel):
     titulo: str
     descripcion: Optional[str] = None
     materia_id: int
+    gestion_id: int
     fecha_entrega: date
     puntaje_maximo: float = 100.0
     tipo: str = "tarea"
@@ -81,6 +138,7 @@ class TrabajoCreate(BaseModel):
 class TrabajoOut(TrabajoCreate):
     id: int
     materia: Optional[MateriaOut] = None
+    gestion: Optional[GestionOut] = None
     class Config: from_attributes = True
 
 class CalificacionCreate(BaseModel):
@@ -96,5 +154,6 @@ class CalificacionOut(CalificacionCreate):
 
 class AsistenciaMasiva(BaseModel):
     materia_id: int
+    gestion_id: int
     fecha: date
     registros: List[dict]

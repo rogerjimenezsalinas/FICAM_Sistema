@@ -2,9 +2,12 @@ from datetime import date, timedelta
 import random
 
 def seed(db):
-    from app.models import Carrera, Materia, Estudiante, Inscripcion, Asistencia, Trabajo, Calificacion
+    from app.models import Carrera, Materia, Estudiante, Inscripcion, Asistencia, Trabajo, Calificacion, Gestion
     if db.query(Carrera).count() > 0:
         return
+
+    gestion = Gestion(codigo="1/2026", nombre="Enero - Junio 2026", activa=True)
+    db.add(gestion); db.commit(); db.refresh(gestion)
 
     carreras = [
         Carrera(nombre="Ingeniería Mecánica", codigo="IM"),
@@ -37,12 +40,12 @@ def seed(db):
         e.carreras = [car]
         db.add(e); db.commit(); db.refresh(e); estudiantes.append(e)
 
-    semestre = "2024-I"
     inscripciones = []
     for est in estudiantes:
         mats = [m for m in materias if m.carrera_id == est.carreras[0].id][:2]
         for mat in mats:
-            insc = Inscripcion(estudiante_id=est.id,materia_id=mat.id,semestre=semestre)
+            insc = Inscripcion(estudiante_id=est.id,materia_id=mat.id,gestion_id=gestion.id,
+                                semestre=gestion.codigo,estado="cursando")
             db.add(insc); inscripciones.append((est,mat))
     db.commit()
 
@@ -50,14 +53,15 @@ def seed(db):
     fechas = [hoy-timedelta(days=hoy.weekday()+7*s+d) for s in range(4) for d in [0,2]]
     for est,mat in inscripciones:
         for fecha in fechas:
-            db.add(Asistencia(estudiante_id=est.id,materia_id=mat.id,fecha=fecha,presente=random.random()>0.15))
+            db.add(Asistencia(estudiante_id=est.id,materia_id=mat.id,gestion_id=gestion.id,
+                               fecha=fecha,presente=random.random()>0.15))
     db.commit()
 
     trabajos = []
     for mat in materias:
         for j in range(3):
             t = Trabajo(titulo=f"{'Tarea Proyecto Examen'.split()[j]} {j+1} - {mat.nombre}",
-                       materia_id=mat.id,fecha_entrega=hoy-timedelta(days=j*14),
+                       materia_id=mat.id,gestion_id=gestion.id,fecha_entrega=hoy-timedelta(days=j*14),
                        puntaje_maximo=100.0,tipo=['tarea','proyecto','examen'][j])
             db.add(t); db.commit(); db.refresh(t); trabajos.append(t)
 
