@@ -287,7 +287,12 @@ select option{background:var(--navy3)}
   </div>
   <div id="lista-calificaciones" class="hidden">
     <div class="panel-title" style="margin-bottom:8px">Registrar notas — <span id="cal-titulo"></span></div>
+    <div class="flex" style="margin-bottom:10px">
+      <input id="cal-busqueda" placeholder="🔍 Buscar por apellidos y nombres..." oninput="filtrarListaCalif()" style="max-width:320px">
+      <small id="cal-contador" style="color:var(--text3)"></small>
+    </div>
     <div id="grid-calificaciones"></div>
+    <div id="cal-sin-resultados" class="empty hidden">Ningún estudiante coincide con la búsqueda</div>
     <button class="btn btn-success mt8" onclick="guardarCalificaciones()">💾 Guardar Calificaciones</button>
   </div>
 </div>
@@ -1183,17 +1188,43 @@ async function cargarListaCalif(){
   const yaMap={};yaCalif.forEach(c=>yaMap[c.estudiante_id]=c.puntaje);
   califActual={};
   document.getElementById('cal-titulo').textContent=document.getElementById('cal-trabajo').selectedOptions[0]?.text||'';
+  // Orden alfabético por apellido, luego nombre
+  inscritos.sort((a,b)=>{
+    const apA=(a.estudiante?.apellido||'').toLowerCase();
+    const apB=(b.estudiante?.apellido||'').toLowerCase();
+    if(apA!==apB) return apA.localeCompare(apB,'es');
+    return (a.estudiante?.nombre||'').toLowerCase().localeCompare((b.estudiante?.nombre||'').toLowerCase(),'es');
+  });
   const grid=document.getElementById('grid-calificaciones');
   grid.innerHTML=inscritos.map(i=>{
     const p=yaMap[i.estudiante_id]??'';
     califActual[i.estudiante_id]=p;
-    return `<div class="asist-row">
-      <div class="asist-name">${i.estudiante?.apellido||''}, ${i.estudiante?.nombre||''}</div>
+    const apellido=i.estudiante?.apellido||'', nombre=i.estudiante?.nombre||'';
+    const busca=(apellido+' '+nombre).toLowerCase();
+    return `<div class="asist-row" data-busca="${busca.replace(/"/g,'')}">
+      <div class="asist-name">${apellido}, ${nombre} ${i.repitente?'<span class="badge badge-amber">Rep.</span>':''}</div>
       <input type="number" id="cal-${i.estudiante_id}" value="${p}" min="0" max="100" style="width:90px"
         oninput="califActual[${i.estudiante_id}]=this.value" placeholder="Nota">
     </div>`;
   }).join('');
+  document.getElementById('cal-busqueda').value='';
+  document.getElementById('cal-contador').textContent=`${inscritos.length} estudiante(s)`;
+  document.getElementById('cal-sin-resultados').classList.add('hidden');
   document.getElementById('lista-calificaciones').classList.remove('hidden');
+}
+function filtrarListaCalif(){
+  const q=document.getElementById('cal-busqueda').value.toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,''); // ignora acentos
+  const filas=document.querySelectorAll('#grid-calificaciones .asist-row');
+  let visibles=0;
+  filas.forEach(row=>{
+    const texto=(row.dataset.busca||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const coincide=texto.includes(q);
+    row.style.display=coincide?'':'none';
+    if(coincide)visibles++;
+  });
+  document.getElementById('cal-contador').textContent=q?`${visibles} de ${filas.length} estudiante(s)`:`${filas.length} estudiante(s)`;
+  document.getElementById('cal-sin-resultados').classList.toggle('hidden', visibles>0 || filas.length===0);
 }
 async function guardarCalificaciones(){
   const tid=+document.getElementById('cal-trabajo').value;
